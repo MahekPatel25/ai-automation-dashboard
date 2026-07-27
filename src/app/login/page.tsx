@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Loader2, Mail, ShieldCheck, Sparkles } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
@@ -9,38 +9,58 @@ import { createClient } from "@/lib/supabase/client";
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const loginStartedRef = useRef(false);
 
   async function handleGoogleLogin() {
-    try {
-      setIsLoading(true);
-      setErrorMessage("");
+  if (loginStartedRef.current) {
+    return;
+  }
 
-      const supabase = createClient();
+  loginStartedRef.current = true;
+  setIsLoading(true);
+  setErrorMessage("");
 
-      const { error } = await supabase.auth.signInWithOAuth({
+  try {
+    const supabase = createClient();
+
+    const callbackUrl =
+      `${window.location.origin}/auth/callback`;
+
+    const { data, error } =
+      await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            access_type: "offline",
-            prompt: "select_account",
-          },
+          redirectTo: callbackUrl,
+          skipBrowserRedirect: true,
         },
       });
 
-      if (error) {
-        throw error;
-      }
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Google login start nahi ho saka.";
-
-      setErrorMessage(message);
-      setIsLoading(false);
+    if (error) {
+      throw error;
     }
+
+    if (!data.url) {
+      throw new Error(
+        "Supabase ne Google login URL return nahi kiya."
+      );
+    }
+
+    /*
+     * OAuth page par sirf ek baar navigation hogi.
+     */
+    window.location.assign(data.url);
+  } catch (error) {
+    loginStartedRef.current = false;
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Google login start nahi ho saka.";
+
+    setErrorMessage(message);
+    setIsLoading(false);
   }
+}
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-10 text-white">
