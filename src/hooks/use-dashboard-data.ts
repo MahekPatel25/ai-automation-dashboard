@@ -14,9 +14,7 @@ export interface DashboardClient {
 
 interface DashboardRouteSuccessResponse {
   success: true;
-
   client: DashboardClient;
-
   data: DashboardApiData;
 }
 
@@ -42,9 +40,13 @@ export function useDashboardData(): UseDashboardDataResult {
   const router = useRouter();
 
   const [data, setData] = useState<DashboardApiData | null>(null);
-  const [client, setClient] = useState<DashboardClient | null>(null);
+  const [client, setClient] =
+    useState<DashboardClient | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  const [error, setError] =
+    useState<string | null>(null);
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -62,36 +64,59 @@ export function useDashboardData(): UseDashboardDataResult {
       const result =
         (await response.json()) as DashboardRouteResponse;
 
-      if (!response.ok || !result.success) {
-        const errorCode = result.error ?? "UNKNOWN_ERROR";
+      /*
+       * result.success ko alag check karne se TypeScript
+       * clearly samajhta hai ki ye error response hai.
+       */
+      if (result.success === false) {
+        const errorCode =
+          result.error ?? "UNKNOWN_ERROR";
 
         if (
           errorCode === "CLIENT_NOT_REGISTERED" ||
           errorCode === "CLIENT_INACTIVE"
         ) {
           router.replace(
-            `/unauthorized?reason=${encodeURIComponent(errorCode)}`
+            `/unauthorized?reason=${encodeURIComponent(
+              errorCode
+            )}`
           );
 
           return;
         }
 
-        if (response.status === 401 || errorCode === "UNAUTHORIZED") {
+        if (
+          response.status === 401 ||
+          errorCode === "UNAUTHORIZED"
+        ) {
           router.replace("/login");
           return;
         }
 
         throw new Error(
-          result.message ?? "Unable to load dashboard data."
+          result.message ??
+            "Unable to load dashboard data."
+        );
+      }
+
+      /*
+       * Defensive HTTP check.
+       *
+       * Normally success:true ke saath response.ok bhi true hoga.
+       * Lekin unexpected API response aaye to error throw karenge.
+       */
+      if (!response.ok) {
+        throw new Error(
+          "Dashboard API returned an unsuccessful response."
         );
       }
 
       setData(result.data);
       setClient(result.client);
-    } catch (error) {
+    } catch (caughtError) {
       const message =
-        error instanceof Error
-          ? error.message
+        caughtError instanceof Error
+          ? caughtError.message
           : "Unable to load dashboard data.";
 
       setError(message);

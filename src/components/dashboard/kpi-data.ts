@@ -40,6 +40,7 @@ const EMPTY_METRICS: DashboardMetrics = {
   draftsCreated: 0,
   meetingsCreated: 0,
   attachmentsDetected: 0,
+  averageConfidence: 0,
 };
 
 export function createKpiItems(
