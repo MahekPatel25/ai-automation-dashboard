@@ -1,65 +1,192 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useMemo } from "react";
+
+import { LogoutButton } from "@/components/auth/logout-button";
+import { EmailCategoryChart } from "@/components/charts/email-category-chart";
+import {
+  createCategoryData,
+  createEmailTrendData,
+} from "@/components/charts/chart-data";
+import { EmailTrendChart } from "@/components/charts/email-trend-chart";
+import { DashboardApiStatus } from "@/components/dashboard/dashboard-api-status";
+import { createEmailItems } from "@/components/dashboard/email-data";
+import { EmailTable } from "@/components/dashboard/email-table";
+import { KpiCard } from "@/components/dashboard/kpi-card";
+import { createKpiItems } from "@/components/dashboard/kpi-data";
+import { DashboardShell } from "@/components/layout/dashboard-shell";
+import { useDashboardData } from "@/hooks/use-dashboard-data";
+
+export default function HomePage() {
+  const {
+    data,
+    client,
+    isLoading,
+    error,
+    refresh,
+  } = useDashboardData();
+
+  const kpiItems = useMemo(() => {
+    return createKpiItems(data?.metrics);
+  }, [data?.metrics]);
+
+  const emailTrendData = useMemo(() => {
+    return createEmailTrendData(data?.charts);
+  }, [data?.charts]);
+
+  const emailCategoryData = useMemo(() => {
+    return createCategoryData(data?.charts);
+  }, [data?.charts]);
+
+  const emailItems = useMemo(() => {
+    return createEmailItems(data?.emails);
+  }, [data?.emails]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <DashboardShell>
+      <div className="space-y-6">
+        <section className="rounded-2xl border border-border/70 bg-card p-6 shadow-sm lg:p-8">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold text-primary">
+                AI Email Operations
+              </p>
+
+              <h2 className="mt-2 text-3xl font-bold tracking-tight">
+                AI Email Assistant Dashboard
+              </h2>
+
+              <p className="mt-3 text-muted-foreground">
+                Track email volume, AI processing, urgent messages,
+                pending replies, drafts, meetings, attachments, and
+                automation health from one place.
+              </p>
+
+              {client && (
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <div className="rounded-xl border border-border bg-background px-4 py-3">
+                    <p className="text-xs text-muted-foreground">
+                      Company
+                    </p>
+
+                    <p className="mt-1 text-sm font-semibold">
+                      {client.companyName}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-border bg-background px-4 py-3">
+                    <p className="text-xs text-muted-foreground">
+                      Logged in as
+                    </p>
+
+                    <p className="mt-1 text-sm font-semibold">
+                      {client.loginEmail}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-border bg-background px-4 py-3">
+                    <p className="text-xs text-muted-foreground">
+                      Account status
+                    </p>
+
+                    <p className="mt-1 text-sm font-semibold capitalize">
+                      {client.status}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row xl:flex-col">
+              <DashboardApiStatus
+                isLoading={isLoading}
+                error={error}
+                generatedAt={data?.generatedAt}
+                onRefresh={refresh}
+              />
+
+              <LogoutButton />
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div className="mb-4 flex items-end justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold">
+                Email Performance
+              </h3>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                Live overview of your current email automation activity
+              </p>
+            </div>
+
+            {data?.generatedAt && (
+              <p className="hidden text-xs text-muted-foreground sm:block">
+                Updated{" "}
+                {new Intl.DateTimeFormat("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }).format(new Date(data.generatedAt))}
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {kpiItems.map((item) => (
+              <KpiCard
+                key={item.title}
+                item={item}
+                isLoading={isLoading}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold">
+              Email Analytics
+            </h3>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Live weekly activity and AI-based email classification
+            </p>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,1fr)]">
+            <EmailTrendChart
+              data={emailTrendData}
+              isLoading={isLoading}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+            <EmailCategoryChart
+              data={emailCategoryData}
+              isLoading={isLoading}
+            />
+          </div>
+        </section>
+
+        <section>
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold">
+              Email Activity
+            </h3>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Recent emails processed by the AI workflow
+            </p>
+          </div>
+
+          <EmailTable
+            emails={emailItems}
+            isLoading={isLoading}
+          />
+        </section>
+      </div>
+    </DashboardShell>
   );
 }

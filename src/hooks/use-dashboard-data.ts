@@ -1,0 +1,116 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import type { DashboardApiData } from "@/types/dashboard";
+
+export interface DashboardClient {
+  id: string;
+  companyName: string;
+  loginEmail: string;
+  status: "active" | "inactive";
+}
+
+interface DashboardRouteSuccessResponse {
+  success: true;
+
+  client: DashboardClient;
+
+  data: DashboardApiData;
+}
+
+interface DashboardRouteErrorResponse {
+  success: false;
+  error?: string;
+  message?: string;
+}
+
+type DashboardRouteResponse =
+  | DashboardRouteSuccessResponse
+  | DashboardRouteErrorResponse;
+
+interface UseDashboardDataResult {
+  data: DashboardApiData | null;
+  client: DashboardClient | null;
+  isLoading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+}
+
+export function useDashboardData(): UseDashboardDataResult {
+  const router = useRouter();
+
+  const [data, setData] = useState<DashboardApiData | null>(null);
+  const [client, setClient] = useState<DashboardClient | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadDashboardData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch("/api/dashboard", {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      const result =
+        (await response.json()) as DashboardRouteResponse;
+
+      if (!response.ok || !result.success) {
+        const errorCode = result.error ?? "UNKNOWN_ERROR";
+
+        if (
+          errorCode === "CLIENT_NOT_REGISTERED" ||
+          errorCode === "CLIENT_INACTIVE"
+        ) {
+          router.replace(
+            `/unauthorized?reason=${encodeURIComponent(errorCode)}`
+          );
+
+          return;
+        }
+
+        if (response.status === 401 || errorCode === "UNAUTHORIZED") {
+          router.replace("/login");
+          return;
+        }
+
+        throw new Error(
+          result.message ?? "Unable to load dashboard data."
+        );
+      }
+
+      setData(result.data);
+      setClient(result.client);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to load dashboard data.";
+
+      setError(message);
+      setData(null);
+      setClient(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    void loadDashboardData();
+  }, [loadDashboardData]);
+
+  return {
+    data,
+    client,
+    isLoading,
+    error,
+    refresh: loadDashboardData,
+  };
+}
