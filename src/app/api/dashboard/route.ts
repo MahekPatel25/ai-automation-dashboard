@@ -16,7 +16,10 @@ function isValidHttpUrl(value: string): boolean {
   try {
     const url = new URL(value);
 
-    return url.protocol === "http:" || url.protocol === "https:";
+    return (
+      url.protocol === "http:" ||
+      url.protocol === "https:"
+    );
   } catch {
     return false;
   }
@@ -26,7 +29,7 @@ export async function GET() {
   try {
     const supabase = await createClient();
 
-    // 1. Logged-in Supabase user verify karo
+    // Logged-in Supabase user verify karo
     const {
       data: { user },
       error: userError,
@@ -37,7 +40,8 @@ export async function GET() {
         {
           success: false,
           error: "UNAUTHORIZED",
-          message: "Please log in to access dashboard data.",
+          message:
+            "Please log in to access dashboard data.",
         },
         {
           status: 401,
@@ -45,9 +49,11 @@ export async function GET() {
       );
     }
 
-    const loginEmail = user.email.trim().toLowerCase();
+    const loginEmail = user.email
+      .trim()
+      .toLowerCase();
 
-    // 2. Logged-in email ka client record load karo
+    // Logged-in email ka client record load karo
     const {
       data: client,
       error: clientError,
@@ -60,13 +66,17 @@ export async function GET() {
       .maybeSingle<ClientRecord>();
 
     if (clientError) {
-      console.error("Client lookup failed:", clientError);
+      console.error(
+        "Client lookup failed:",
+        clientError
+      );
 
       return NextResponse.json(
         {
           success: false,
           error: "CLIENT_LOOKUP_FAILED",
-          message: "Client configuration could not be loaded.",
+          message:
+            "Client configuration could not be loaded.",
         },
         {
           status: 500,
@@ -102,14 +112,16 @@ export async function GET() {
       );
     }
 
-    const storedWebhookUrl = client.n8n_webhook_url.trim();
+    const storedWebhookUrl =
+      client.n8n_webhook_url.trim();
 
     if (!isValidHttpUrl(storedWebhookUrl)) {
       return NextResponse.json(
         {
           success: false,
           error: "INVALID_WEBHOOK_URL",
-          message: "The client's n8n webhook URL is invalid.",
+          message:
+            "The client's n8n webhook URL is invalid.",
         },
         {
           status: 500,
@@ -118,51 +130,30 @@ export async function GET() {
     }
 
     /*
-     * Webhook URL me logged-in client ki identity add karo.
+     * Important:
+     * Client record sirf correct webhook select karta hai.
      *
-     * Example:
-     * /webhook/email-dashboard-data
+     * Webhook URL ke andar login email, client ID ya
+     * company name add nahi kiya ja raha.
      *
-     * becomes:
-     * /webhook/email-dashboard-data
-     * ?clientEmail=client@gmail.com
-     * &clientId=uuid
+     * Isliye multiple active clients same webhook URL
+     * use karke same dashboard data dekh sakte hain.
      */
-    const webhookUrl = new URL(storedWebhookUrl);
-
-    webhookUrl.searchParams.set(
-      "clientEmail",
-      client.login_email.trim().toLowerCase()
+    const webhookResponse = await fetch(
+      storedWebhookUrl,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+        cache: "no-store",
+        signal: AbortSignal.timeout(15000),
+      }
     );
-
-    webhookUrl.searchParams.set("clientId", client.id);
-
-    webhookUrl.searchParams.set(
-      "companyName",
-      client.company_name
-    );
-
-    // 3. Client-specific n8n webhook call
-    const webhookResponse = await fetch(webhookUrl.toString(), {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-
-        /*
-         * Query parameters primary source hain.
-         * Ye headers debugging aur future security ke liye bhi bhej rahe hain.
-         */
-        "X-Client-Email": client.login_email
-          .trim()
-          .toLowerCase(),
-        "X-Client-Id": client.id,
-      },
-      cache: "no-store",
-      signal: AbortSignal.timeout(15000),
-    });
 
     if (!webhookResponse.ok) {
-      const responseText = await webhookResponse.text();
+      const responseText =
+        await webhookResponse.text();
 
       console.error("n8n webhook error:", {
         status: webhookResponse.status,
@@ -182,17 +173,24 @@ export async function GET() {
     }
 
     const contentType =
-      webhookResponse.headers.get("content-type") ?? "";
+      webhookResponse.headers.get(
+        "content-type"
+      ) ?? "";
 
     let dashboardData: unknown;
 
-    if (contentType.includes("application/json")) {
-      dashboardData = await webhookResponse.json();
+    if (
+      contentType.includes("application/json")
+    ) {
+      dashboardData =
+        await webhookResponse.json();
     } else {
-      const responseText = await webhookResponse.text();
+      const responseText =
+        await webhookResponse.text();
 
       try {
-        dashboardData = JSON.parse(responseText);
+        dashboardData =
+          JSON.parse(responseText);
       } catch {
         dashboardData = {
           rawResponse: responseText,
@@ -222,7 +220,10 @@ export async function GET() {
       }
     );
   } catch (error) {
-    console.error("Dashboard data API error:", error);
+    console.error(
+      "Dashboard data API error:",
+      error
+    );
 
     const timeoutError =
       error instanceof Error &&
