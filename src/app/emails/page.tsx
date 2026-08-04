@@ -4,7 +4,6 @@ import {
   useEffect,
   useMemo,
   useState,
-  type LucideIcon,
 } from "react";
 import {
   AlertTriangle,
@@ -18,6 +17,7 @@ import {
   Search,
   SlidersHorizontal,
   X,
+  type LucideIcon,
 } from "lucide-react";
 
 import {
