@@ -207,65 +207,66 @@ export function EmailDetailsDrawer({
   }
 
   async function handleSendDraft() {
-    if (!canSend) {
-      return;
-    }
-
-    if (!onSendDraft) {
-      setSendError(
-        "Direct send API modal ke saath connect nahi hai."
-      );
-
-      return;
-    }
-
-    if (email.rowNumber <= 0) {
-      setSendError(
-        "Google Sheet row number available nahi hai. Dashboard data refresh karo."
-      );
-
-      return;
-    }
-
-    setIsSending(true);
-    setSendError("");
-
-    try {
-      await onSendDraft({
-        emailId: email.id,
-        rowNumber: email.rowNumber,
-
-        messageId: email.messageId,
-        threadId: email.threadId,
-
-        clientEmail: email.clientEmail,
-        draftId: email.draftId,
-
-        to: draftTo.trim(),
-        subject: draftSubject.trim(),
-        body: draftBody,
-
-        html:
-          cleanDraftValue(
-            email.draftHtml
-          ) ||
-          createBasicEmailHtml(
-            draftBody
-          ),
-      });
-
-      setIsEditing(false);
-      onClose();
-    } catch (error) {
-      setSendError(
-        error instanceof Error
-          ? error.message
-          : "Draft send nahi ho paya. Please dobara try karo."
-      );
-    } finally {
-      setIsSending(false);
-    }
+  if (!email) {
+    setSendError(
+      "Email details available nahi hain. Modal close karke dobara email open karo."
+    );
+    return;
   }
+
+  if (!canSend) {
+    return;
+  }
+
+  if (!onSendDraft) {
+    setSendError(
+      "Direct send API modal ke saath connect nahi hai."
+    );
+    return;
+  }
+
+  if (email.rowNumber <= 0) {
+    setSendError(
+      "Google Sheet row number available nahi hai. Dashboard data refresh karo."
+    );
+    return;
+  }
+
+  setIsSending(true);
+  setSendError("");
+
+  try {
+    await onSendDraft({
+      emailId: email.id,
+      rowNumber: email.rowNumber,
+
+      messageId: email.messageId,
+      threadId: email.threadId,
+
+      clientEmail: email.clientEmail,
+      draftId: email.draftId,
+
+      to: draftTo.trim(),
+      subject: draftSubject.trim(),
+      body: draftBody,
+
+      html:
+        cleanDraftValue(email.draftHtml) ||
+        createBasicEmailHtml(draftBody),
+    });
+
+    setIsEditing(false);
+    onClose();
+  } catch (error) {
+    setSendError(
+      error instanceof Error
+        ? error.message
+        : "Draft send nahi ho paya. Please dobara try karo."
+    );
+  } finally {
+    setIsSending(false);
+  }
+}
 
   return (
     <>
