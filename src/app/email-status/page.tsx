@@ -4,7 +4,6 @@ import {
   useEffect,
   useMemo,
   useState,
-  type LucideIcon,
 } from "react";
 import {
   AlertCircle,
@@ -21,6 +20,7 @@ import {
   RefreshCw,
   Search,
   Send,
+  type LucideIcon,
 } from "lucide-react";
 
 import {
