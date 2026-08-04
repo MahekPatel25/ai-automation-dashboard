@@ -1,5 +1,6 @@
 "use client";
 
+
 import {
   useEffect,
   useMemo,
@@ -23,3 +24,4 @@ import {
   Send,
   type LucideIcon,
 } from "lucide-react";
+export default function EmailStatusPage() {
