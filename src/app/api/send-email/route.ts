@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 interface SendEmailRequestBody {
+  source?: string;
+
   emailId?: string;
   rowNumber?: number | string;
 
@@ -47,13 +49,22 @@ export async function POST(
     const requestBody =
       (await request.json()) as SendEmailRequestBody;
 
+    const requestSource =
+      cleanText(requestBody.source) ||
+      "email-dashboard";
+
+    const isComposerRequest =
+      requestSource ===
+      "ai-email-composer";
+
     const emailId = cleanText(
       requestBody.emailId
     );
 
-    const rowNumber = normalizeRowNumber(
-      requestBody.rowNumber
-    );
+    const rowNumber =
+      normalizeRowNumber(
+        requestBody.rowNumber
+      );
 
     const messageId = cleanText(
       requestBody.messageId
@@ -63,9 +74,10 @@ export async function POST(
       requestBody.threadId
     );
 
-    const requestClientEmail = cleanText(
-      requestBody.clientEmail
-    );
+    const requestClientEmail =
+      cleanText(
+        requestBody.clientEmail
+      );
 
     const draftId = cleanText(
       requestBody.draftId
@@ -73,7 +85,7 @@ export async function POST(
 
     const to = cleanText(
       requestBody.to
-    );
+    ).toLowerCase();
 
     const subject = cleanText(
       requestBody.subject
@@ -87,7 +99,17 @@ export async function POST(
       requestBody.html
     );
 
-    if (rowNumber <= 0) {
+    /*
+     * Existing Emails page ke liye Google Sheet
+     * row number required rahega.
+     *
+     * AI Email Composer fresh outbound email hai,
+     * isliye uske liye row number required nahi hai.
+     */
+    if (
+      !isComposerRequest &&
+      rowNumber <= 0
+    ) {
       return NextResponse.json(
         {
           success: false,
@@ -299,10 +321,12 @@ export async function POST(
 
     const payload = {
       action: "send_email",
-      source:
-        "ai-email-assistant-dashboard",
+
+      source: requestSource,
+      isComposerRequest,
 
       clientId: client.id,
+
       companyName:
         client.company_name,
 
@@ -384,6 +408,9 @@ export async function POST(
           status:
             webhookResponse.status,
 
+          source:
+            requestSource,
+
           rowNumber,
 
           clientId:
@@ -447,6 +474,11 @@ export async function POST(
         sentMessageId:
           webhookData?.sentMessageId ||
           "",
+
+        source:
+          requestSource,
+
+        isComposerRequest,
 
         rowNumber,
 

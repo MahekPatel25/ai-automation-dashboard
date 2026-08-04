@@ -11,13 +11,18 @@ import {
 import type { EmailCategoryDataItem } from "./chart-data";
 
 const chartColors = [
-  "var(--chart-1)",
-  "var(--chart-2)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-5)",
-  "var(--primary)",
-  "var(--muted-foreground)",
+  "#155DFC", // Blue
+  "#09B3A6", // Teal
+  "#31C950", // Green
+  "#FDC745", // Yellow
+  "#EC253F", // Red
+  "#18786F", // Dark Teal
+  "#45556C", // Slate
+  "#0C0A09", // Black
+  "#6D5CE8", // Purple
+  "#FF7A59", // Orange
+  "#5B99E5", // Sky Blue
+  "#A1DBF7", // Light Blue
 ];
 
 interface EmailCategoryChartProps {

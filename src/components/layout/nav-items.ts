@@ -5,6 +5,7 @@ import {
   ClipboardList,
   BarChart3,
   Workflow,
+  Sparkles,
   LucideIcon,
 } from "lucide-react";
 
@@ -25,6 +26,11 @@ export const navItems: NavItem[] = [
     title: "Emails",
     href: "/emails",
     icon: Mail,
+  },
+  {
+    title: "AI Email Composer",
+    href: "/ai-email-composer",
+    icon: Sparkles,
   },
   {
     title: "AI Analysis",

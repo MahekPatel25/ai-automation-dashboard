@@ -1,11 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type LucideIcon,
+} from "react";
 import {
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
+  ExternalLink,
   FileEdit,
+  Mail,
   MailCheck,
   MailQuestion,
   RefreshCw,
@@ -35,13 +45,74 @@ type StatusTab =
   | "sent"
   | "failed";
 
+type CardAccent =
+  | "blue"
+  | "amber"
+  | "green"
+  | "red"
+  | "slate";
+
 interface SendEmailApiResponse {
   success?: boolean;
   message?: string;
   sentMessageId?: string;
 }
 
+interface StatusCardItem {
+  title: string;
+  value: number;
+  description: string;
+  icon: LucideIcon;
+  accent: CardAccent;
+}
+
+interface WorkflowStyle {
+  text: string;
+  background: string;
+  border: string;
+  dot: string;
+}
+
 const EMAILS_PER_PAGE = 10;
+
+const CARD_STYLES: Record<
+  CardAccent,
+  {
+    color: string;
+    background: string;
+    border: string;
+  }
+> = {
+  blue: {
+    color: "#3E63A8",
+    background: "rgba(62, 99, 168, 0.08)",
+    border: "rgba(62, 99, 168, 0.20)",
+  },
+
+  amber: {
+    color: "#A67416",
+    background: "rgba(166, 116, 22, 0.08)",
+    border: "rgba(166, 116, 22, 0.20)",
+  },
+
+  green: {
+    color: "#2F8F46",
+    background: "rgba(47, 143, 70, 0.08)",
+    border: "rgba(47, 143, 70, 0.20)",
+  },
+
+  red: {
+    color: "#C11007",
+    background: "rgba(193, 16, 7, 0.07)",
+    border: "rgba(193, 16, 7, 0.21)",
+  },
+
+  slate: {
+    color: "#526173",
+    background: "rgba(82, 97, 115, 0.08)",
+    border: "rgba(82, 97, 115, 0.20)",
+  },
+};
 
 export default function EmailStatusPage() {
   const {
@@ -142,25 +213,39 @@ export default function EmailStatusPage() {
       });
     }, [emails]);
 
-  const today = useMemo(() => {
-    return new Intl.DateTimeFormat("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(new Date());
+  const replyRequiredCount = useMemo(() => {
+    return emails.filter(
+      (email) => email.replyRequired
+    ).length;
+  }, [emails]);
+
+  const todayKey = useMemo(() => {
+    const now = new Date();
+
+    return [
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    ].join("-");
   }, []);
 
   const draftsToday = useMemo(() => {
-    return draftEmails.filter((email) =>
-      email.receivedAt.includes(today)
-    ).length;
-  }, [draftEmails, today]);
+    return draftEmails.filter((email) => {
+      return (
+        getDateKey(email.receivedAtIso) ===
+        todayKey
+      );
+    }).length;
+  }, [draftEmails, todayKey]);
 
   const sentToday = useMemo(() => {
-    return sentEmails.filter((email) =>
-      email.receivedAt.includes(today)
-    ).length;
-  }, [sentEmails, today]);
+    return sentEmails.filter((email) => {
+      return (
+        getDateKey(email.receivedAtIso) ===
+        todayKey
+      );
+    }).length;
+  }, [sentEmails, todayKey]);
 
   const activeEmails = useMemo(() => {
     if (activeTab === "drafts") {
@@ -203,7 +288,7 @@ export default function EmailStatusPage() {
         email.status,
         email.workflowStatus,
       ].some((value) =>
-        value
+        String(value)
           .toLowerCase()
           .includes(normalizedSearch)
       );
@@ -213,7 +298,8 @@ export default function EmailStatusPage() {
   const totalPages = Math.max(
     1,
     Math.ceil(
-      filteredEmails.length / EMAILS_PER_PAGE
+      filteredEmails.length /
+        EMAILS_PER_PAGE
     )
   );
 
@@ -221,6 +307,16 @@ export default function EmailStatusPage() {
     currentPage,
     totalPages
   );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, activeTab]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const paginatedEmails = useMemo(() => {
     const startIndex =
@@ -245,8 +341,99 @@ export default function EmailStatusPage() {
     filteredEmails.length
   );
 
+  const visiblePages = useMemo(() => {
+    const pages: number[] = [];
+
+    const startPage = Math.max(
+      1,
+      safeCurrentPage - 2
+    );
+
+    const endPage = Math.min(
+      totalPages,
+      safeCurrentPage + 2
+    );
+
+    for (
+      let page = startPage;
+      page <= endPage;
+      page += 1
+    ) {
+      pages.push(page);
+    }
+
+    return pages;
+  }, [safeCurrentPage, totalPages]);
+
   const isDraftsTab =
     activeTab === "drafts";
+
+  const statusCards: StatusCardItem[] = [
+    {
+      title: "Total Drafts",
+      value: draftEmails.length,
+      description:
+        "Emails with generated AI drafts",
+      icon: FileEdit,
+      accent: "blue",
+    },
+    {
+      title: "Pending Replies",
+      value: pendingEmails.length,
+      description:
+        "Emails still waiting for a reply",
+      icon: Clock3,
+      accent: "amber",
+    },
+    {
+      title: "Sent Emails",
+      value: sentEmails.length,
+      description:
+        "Replies successfully delivered",
+      icon: MailCheck,
+      accent: "green",
+    },
+    {
+      title: "Failed Emails",
+      value: failedEmails.length,
+      description:
+        "Emails with workflow errors",
+      icon: AlertCircle,
+      accent: "red",
+    },
+    {
+      title: "Reply Required",
+      value: replyRequiredCount,
+      description:
+        "Emails marked by AI for response",
+      icon: MailQuestion,
+      accent: "amber",
+    },
+    {
+      title: "Awaiting Approval",
+      value: awaitingApprovalEmails.length,
+      description:
+        "Drafts waiting for manual review",
+      icon: CheckCircle2,
+      accent: "slate",
+    },
+    {
+      title: "Drafts Today",
+      value: draftsToday,
+      description:
+        "New drafts generated today",
+      icon: FileEdit,
+      accent: "blue",
+    },
+    {
+      title: "Sent Today",
+      value: sentToday,
+      description:
+        "Replies delivered today",
+      icon: Send,
+      accent: "green",
+    },
+  ];
 
   function changeTab(tab: StatusTab) {
     setActiveTab(tab);
@@ -330,97 +517,37 @@ export default function EmailStatusPage() {
     }
 
     setShowSuccessPopup(true);
-
     void refresh();
   }
-
-  const statusCards = [
-    {
-      title: "Total Drafts",
-      value: draftEmails.length,
-      description:
-        "Emails with a generated draft",
-      icon: FileEdit,
-    },
-    {
-      title: "Pending Replies",
-      value: pendingEmails.length,
-      description:
-        "Emails still requiring a reply",
-      icon: Clock3,
-    },
-    {
-      title: "Sent Emails",
-      value: sentEmails.length,
-      description:
-        "Replies successfully sent",
-      icon: MailCheck,
-    },
-    {
-      title: "Failed Emails",
-      value: failedEmails.length,
-      description:
-        "Emails with workflow errors",
-      icon: AlertCircle,
-    },
-    {
-      title: "Reply Required",
-      value: emails.filter(
-        (email) => email.replyRequired
-      ).length,
-      description:
-        "Emails marked by AI for reply",
-      icon: MailQuestion,
-    },
-    {
-      title: "Awaiting Approval",
-      value: awaitingApprovalEmails.length,
-      description:
-        "Drafts waiting for client review",
-      icon: CheckCircle2,
-    },
-    {
-      title: "Drafts Today",
-      value: draftsToday,
-      description:
-        "Drafts generated today",
-      icon: FileEdit,
-    },
-    {
-      title: "Sent Today",
-      value: sentToday,
-      description:
-        "Replies sent today",
-      icon: Send,
-    },
-  ];
 
   return (
     <DashboardShell>
       <div className="space-y-6">
-        <section className="rounded-2xl border border-border/70 bg-card p-6 shadow-sm lg:p-8">
+        <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm lg:p-6">
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-primary">
-                Email Workflow Management
-              </p>
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/30 text-muted-foreground">
+                <MailCheck className="h-5 w-5" />
+              </div>
 
-              <h1 className="mt-2 text-3xl font-bold tracking-tight">
-                Email Status
-              </h1>
+              <div className="min-w-0">
+                <h1 className="text-2xl font-semibold tracking-tight text-card-foreground md:text-3xl">
+                  Email Status
+                </h1>
 
-              <p className="mt-3 max-w-3xl text-muted-foreground">
-                Track generated drafts, pending
-                replies, sent emails and failed
-                automation actions from one place.
-              </p>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+                  Track generated drafts, pending
+                  replies, sent emails and failed
+                  workflow actions.
+                </p>
+              </div>
             </div>
 
             <button
               type="button"
-              onClick={refresh}
+              onClick={() => void refresh()}
               disabled={isLoading}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-semibold transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-semibold text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <RefreshCw
                 className={`h-4 w-4 ${
@@ -435,76 +562,55 @@ export default function EmailStatusPage() {
           </div>
 
           {error && (
-            <div className="mt-5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              Dashboard API could not be
-              loaded. Please check the API
-              connection and try again.
+            <div className="mt-5 border-t border-border pt-4">
+              <div className="flex items-start gap-3 rounded-xl border border-[rgba(193,16,7,0.20)] bg-[rgba(193,16,7,0.06)] px-4 py-3 text-sm text-[#C11007]">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+
+                <p>
+                  Dashboard API could not be loaded.
+                  Check the API and n8n workflow
+                  connection.
+                </p>
+              </div>
             </div>
           )}
         </section>
 
         <section>
           <div className="mb-4">
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-lg font-semibold text-foreground">
               Status Overview
             </h2>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              Live summary of reply and draft
-              activity
+              Live summary of email reply and draft
+              activity.
             </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {statusCards.map((card) => {
-              const Icon = card.icon;
-
-              return (
-                <article
-                  key={card.title}
-                  className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">
-                        {card.title}
-                      </p>
-
-                      {isLoading ? (
-                        <div className="mt-3 h-9 w-16 animate-pulse rounded-md bg-muted" />
-                      ) : (
-                        <p className="mt-2 text-3xl font-bold tracking-tight">
-                          {card.value}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                  </div>
-
-                  <p className="mt-4 text-xs text-muted-foreground">
-                    {card.description}
-                  </p>
-                </article>
-              );
-            })}
+            {statusCards.map((card) => (
+              <StatusCard
+                key={card.title}
+                item={card}
+                isLoading={isLoading}
+              />
+            ))}
           </div>
         </section>
 
         <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-          <div className="border-b border-border/70 p-5">
+          <div className="border-b border-border/70 px-5 py-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
-                <h2 className="text-lg font-semibold">
+                <h2 className="text-lg font-semibold text-card-foreground">
                   Email Workflow Records
                 </h2>
 
                 <p className="mt-1 text-sm text-muted-foreground">
                   {isDraftsTab
-                    ? "Click a draft email to view, edit and send its generated reply."
-                    : "Review email records for the selected workflow status."}
+                    ? "Open a draft to review, edit and send its generated reply."
+                    : "Review records for the selected workflow status."}
                 </p>
               </div>
 
@@ -514,14 +620,14 @@ export default function EmailStatusPage() {
                 <input
                   type="search"
                   value={searchQuery}
-                  onChange={(event) => {
+                  onChange={(event) =>
                     setSearchQuery(
                       event.target.value
-                    );
-                    setCurrentPage(1);
-                  }}
+                    )
+                  }
                   placeholder="Search emails..."
-                  className="h-11 w-full rounded-xl border border-border bg-background pl-10 pr-4 text-sm outline-none transition focus:border-primary/50 focus:ring-4 focus:ring-primary/10"
+                  aria-label="Search workflow emails"
+                  className="h-11 w-full rounded-xl border border-border bg-background pl-10 pr-4 text-sm text-foreground outline-none transition-all duration-200 placeholder:text-muted-foreground hover:border-ring/40 focus:border-ring focus:ring-4 focus:ring-ring/10"
                 />
               </div>
             </div>
@@ -533,6 +639,7 @@ export default function EmailStatusPage() {
                 isActive={
                   activeTab === "drafts"
                 }
+                accent="blue"
                 onClick={() =>
                   changeTab("drafts")
                 }
@@ -544,6 +651,7 @@ export default function EmailStatusPage() {
                 isActive={
                   activeTab === "pending"
                 }
+                accent="amber"
                 onClick={() =>
                   changeTab("pending")
                 }
@@ -555,6 +663,7 @@ export default function EmailStatusPage() {
                 isActive={
                   activeTab === "sent"
                 }
+                accent="green"
                 onClick={() =>
                   changeTab("sent")
                 }
@@ -566,89 +675,55 @@ export default function EmailStatusPage() {
                 isActive={
                   activeTab === "failed"
                 }
+                accent="red"
                 onClick={() =>
                   changeTab("failed")
                 }
               />
             </div>
 
-            <p className="mt-4 text-sm text-muted-foreground">
-              Showing{" "}
-              <span className="font-semibold text-foreground">
-                {startEmailNumber}
-              </span>
-              {" - "}
-              <span className="font-semibold text-foreground">
-                {endEmailNumber}
-              </span>{" "}
-              of{" "}
-              <span className="font-semibold text-foreground">
-                {filteredEmails.length}
-              </span>{" "}
-              emails
-            </p>
+            <div className="mt-4 flex flex-col gap-2 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Showing{" "}
+                <span className="font-semibold text-foreground">
+                  {startEmailNumber}
+                </span>
+                {" – "}
+                <span className="font-semibold text-foreground">
+                  {endEmailNumber}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-foreground">
+                  {filteredEmails.length}
+                </span>{" "}
+                emails
+              </p>
+
+              {isDraftsTab && (
+                <p className="text-xs text-muted-foreground">
+                  Click any row to open its draft
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1050px] border-collapse">
+            <table className="w-full min-w-[1120px] border-collapse">
               <thead>
-                <tr className="border-b border-border/70 bg-muted/20 text-left">
-                  <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Sender
-                  </th>
-
-                  <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Subject
-                  </th>
-
-                  <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Category
-                  </th>
-
-                  <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Priority
-                  </th>
-
-                  <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Email Status
-                  </th>
-
-                  <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Workflow
-                  </th>
-
-                  <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Received
-                  </th>
+                <tr className="border-b border-border/70 bg-muted/15 text-left">
+                  <TableHeading label="Sender" />
+                  <TableHeading label="Subject" />
+                  <TableHeading label="Category" />
+                  <TableHeading label="Priority" />
+                  <TableHeading label="Email Status" />
+                  <TableHeading label="Workflow" />
+                  <TableHeading label="Received" />
                 </tr>
               </thead>
 
               <tbody>
                 {isLoading ? (
-                  Array.from({
-                    length: 6,
-                  }).map((_, index) => (
-                    <tr
-                      key={index}
-                      className="border-b border-border/60"
-                    >
-                      {Array.from({
-                        length: 7,
-                      }).map(
-                        (
-                          __,
-                          columnIndex
-                        ) => (
-                          <td
-                            key={columnIndex}
-                            className="px-5 py-5"
-                          >
-                            <div className="h-5 animate-pulse rounded-md bg-muted" />
-                          </td>
-                        )
-                      )}
-                    </tr>
-                  ))
+                  <TableSkeleton />
                 ) : paginatedEmails.length >
                   0 ? (
                   paginatedEmails.map(
@@ -658,46 +733,55 @@ export default function EmailStatusPage() {
                         onClick={
                           isDraftsTab
                             ? () =>
-                                openEmail(
-                                  email
-                                )
+                                openEmail(email)
                             : undefined
-                        }
-                        aria-disabled={
-                          !isDraftsTab
                         }
                         className={
                           isDraftsTab
-                            ? "cursor-pointer border-b border-border/60 transition-colors last:border-b-0 hover:bg-muted/30"
-                            : "cursor-default border-b border-border/60 last:border-b-0"
+                            ? "group cursor-pointer border-b border-border/55 transition-colors duration-150 last:border-b-0 hover:bg-muted/20"
+                            : "group cursor-default border-b border-border/55 last:border-b-0"
                         }
                       >
                         <td className="px-5 py-4">
-                          <p className="max-w-[190px] truncate text-sm font-semibold">
-                            {
-                              email.senderName
-                            }
-                          </p>
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-muted/30 text-xs font-semibold text-muted-foreground transition-transform duration-200 group-hover:scale-105">
+                              {getInitials(
+                                email.senderName
+                              )}
+                            </div>
 
-                          <p className="mt-1 max-w-[190px] truncate text-xs text-muted-foreground">
-                            {
-                              email.senderEmail
-                            }
-                          </p>
+                            <div className="min-w-0">
+                              <p className="max-w-[185px] truncate text-sm font-semibold text-foreground">
+                                {email.senderName}
+                              </p>
+
+                              <p className="mt-0.5 max-w-[185px] truncate text-xs text-muted-foreground">
+                                {email.senderEmail}
+                              </p>
+                            </div>
+                          </div>
                         </td>
 
-                        <td className="max-w-[300px] px-5 py-4">
-                          <p className="truncate text-sm font-medium">
-                            {email.subject}
-                          </p>
+                        <td className="max-w-[320px] px-5 py-4">
+                          <div className="flex items-start gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-foreground">
+                                {email.subject}
+                              </p>
 
-                          <p className="mt-1 truncate text-xs text-muted-foreground">
-                            {email.summary}
-                          </p>
+                              <p className="mt-1 truncate text-xs text-muted-foreground">
+                                {email.summary}
+                              </p>
+                            </div>
+
+                            {isDraftsTab && (
+                              <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                            )}
+                          </div>
                         </td>
 
                         <td className="px-5 py-4">
-                          <span className="inline-flex rounded-lg border border-border/70 bg-muted/20 px-2.5 py-1 text-xs font-medium">
+                          <span className="inline-flex max-w-[130px] truncate rounded-lg border border-border/70 bg-muted/15 px-2.5 py-1 text-xs font-medium text-muted-foreground">
                             {email.category}
                           </span>
                         </td>
@@ -712,9 +796,7 @@ export default function EmailStatusPage() {
 
                         <td className="px-5 py-4">
                           <EmailStatusBadge
-                            status={
-                              email.status
-                            }
+                            status={email.status}
                           />
                         </td>
 
@@ -727,9 +809,7 @@ export default function EmailStatusPage() {
                         </td>
 
                         <td className="whitespace-nowrap px-5 py-4 text-sm text-muted-foreground">
-                          {
-                            email.receivedAt
-                          }
+                          {email.receivedAt}
                         </td>
                       </tr>
                     )
@@ -738,17 +818,23 @@ export default function EmailStatusPage() {
                   <tr>
                     <td
                       colSpan={7}
-                      className="px-5 py-16 text-center"
+                      className="px-5 py-20 text-center"
                     >
-                      <p className="font-semibold">
-                        No emails found
-                      </p>
+                      <div className="mx-auto max-w-sm">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-muted/20 text-muted-foreground">
+                          <Mail className="h-5 w-5" />
+                        </div>
 
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        There are currently no
-                        emails available in this
-                        status.
-                      </p>
+                        <p className="mt-4 font-semibold text-foreground">
+                          No emails found
+                        </p>
+
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                          There are currently no
+                          matching emails available
+                          in this status.
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -758,7 +844,7 @@ export default function EmailStatusPage() {
 
           {filteredEmails.length >
             EMAILS_PER_PAGE && (
-            <div className="flex flex-col gap-3 border-t border-border/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4 border-t border-border/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
                 Page{" "}
                 <span className="font-semibold text-foreground">
@@ -770,46 +856,70 @@ export default function EmailStatusPage() {
                 </span>
               </p>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={
-                    goToPreviousPage
-                  }
+                  onClick={goToPreviousPage}
                   disabled={
                     safeCurrentPage === 1
                   }
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-border px-4 text-sm font-medium transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-border px-3 text-sm font-medium transition hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-45"
                 >
+                  <ChevronLeft className="h-4 w-4" />
                   Previous
                 </button>
 
-                {Array.from({
-                  length: totalPages,
-                }).map((_, index) => {
-                  const page =
-                    index + 1;
-
-                  return (
-                    <button
-                      key={page}
-                      type="button"
-                      onClick={() =>
-                        setCurrentPage(
-                          page
-                        )
-                      }
-                      className={
-                        page ===
+                {visiblePages[0] > 1 && (
+                  <>
+                    <PageButton
+                      page={1}
+                      currentPage={
                         safeCurrentPage
-                          ? "inline-flex h-9 min-w-9 items-center justify-center rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground"
-                          : "inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium transition hover:bg-accent"
                       }
-                    >
-                      {page}
-                    </button>
-                  );
-                })}
+                      onClick={setCurrentPage}
+                    />
+
+                    {visiblePages[0] > 2 && (
+                      <span className="px-1 text-sm text-muted-foreground">
+                        …
+                      </span>
+                    )}
+                  </>
+                )}
+
+                {visiblePages.map((page) => (
+                  <PageButton
+                    key={page}
+                    page={page}
+                    currentPage={
+                      safeCurrentPage
+                    }
+                    onClick={setCurrentPage}
+                  />
+                ))}
+
+                {visiblePages[
+                  visiblePages.length - 1
+                ] < totalPages && (
+                  <>
+                    {visiblePages[
+                      visiblePages.length - 1
+                    ] <
+                      totalPages - 1 && (
+                      <span className="px-1 text-sm text-muted-foreground">
+                        …
+                      </span>
+                    )}
+
+                    <PageButton
+                      page={totalPages}
+                      currentPage={
+                        safeCurrentPage
+                      }
+                      onClick={setCurrentPage}
+                    />
+                  </>
+                )}
 
                 <button
                   type="button"
@@ -818,9 +928,10 @@ export default function EmailStatusPage() {
                     safeCurrentPage ===
                     totalPages
                   }
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-border px-4 text-sm font-medium transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-border px-3 text-sm font-medium transition hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   Next
+                  <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -834,12 +945,8 @@ export default function EmailStatusPage() {
           isDraftsTab &&
           isDrawerOpen
         }
-        onClose={
-          closeEmailDrawer
-        }
-        onSendDraft={
-          handleSendDraft
-        }
+        onClose={closeEmailDrawer}
+        onSendDraft={handleSendDraft}
       />
 
       <SuccessPopup
@@ -853,37 +960,100 @@ export default function EmailStatusPage() {
   );
 }
 
-interface StatusTabButtonProps {
-  label: string;
-  count: number;
-  isActive: boolean;
-  onClick: () => void;
+function StatusCard({
+  item,
+  isLoading,
+}: {
+  item: StatusCardItem;
+  isLoading: boolean;
+}) {
+  const Icon = item.icon;
+  const style =
+    CARD_STYLES[item.accent];
+
+  return (
+    <article className="group rounded-2xl border border-border/70 bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-muted-foreground">
+            {item.title}
+          </p>
+
+          {isLoading ? (
+            <div className="mt-3 h-9 w-16 animate-pulse rounded-md bg-muted" />
+          ) : (
+            <p className="mt-2 text-3xl font-semibold tracking-tight text-card-foreground">
+              {item.value.toLocaleString()}
+            </p>
+          )}
+        </div>
+
+        <div
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-transform duration-200 group-hover:scale-105"
+          style={{
+            color: style.color,
+            backgroundColor:
+              style.background,
+            borderColor: style.border,
+          }}
+        >
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+
+      <p className="mt-4 text-xs leading-5 text-muted-foreground">
+        {item.description}
+      </p>
+    </article>
+  );
 }
 
 function StatusTabButton({
   label,
   count,
   isActive,
+  accent,
   onClick,
-}: StatusTabButtonProps) {
+}: {
+  label: string;
+  count: number;
+  isActive: boolean;
+  accent: CardAccent;
+  onClick: () => void;
+}) {
+  const style = CARD_STYLES[accent];
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className={
+      className="inline-flex h-10 items-center gap-2 rounded-xl border px-4 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5"
+      style={
         isActive
-          ? "inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm"
-          : "inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          ? {
+              color: style.color,
+              backgroundColor:
+                style.background,
+              borderColor: style.border,
+            }
+          : {
+              color:
+                "var(--muted-foreground)",
+              backgroundColor:
+                "var(--background)",
+              borderColor: "var(--border)",
+            }
       }
     >
       {label}
 
       <span
-        className={
-          isActive
-            ? "rounded-full bg-primary-foreground/20 px-2 py-0.5 text-xs"
-            : "rounded-full bg-muted px-2 py-0.5 text-xs"
-        }
+        className="rounded-full px-2 py-0.5 text-xs"
+        style={{
+          backgroundColor: isActive
+            ? `${style.color}14`
+            : "var(--muted)",
+        }}
       >
         {count}
       </span>
@@ -897,44 +1067,197 @@ function WorkflowStatusBadge({
   status: string;
 }) {
   const normalizedStatus =
-    status.toLowerCase();
+    status.trim().toLowerCase();
+
+  let style: WorkflowStyle;
 
   if (
     normalizedStatus.includes("failed") ||
     normalizedStatus.includes("error")
   ) {
-    return (
-      <span className="inline-flex rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-600 dark:text-red-400">
-        {status}
-      </span>
-    );
-  }
-
-  if (
+    style = {
+      text: "#C11007",
+      background:
+        "rgba(193, 16, 7, 0.07)",
+      border:
+        "rgba(193, 16, 7, 0.21)",
+      dot: "#C11007",
+    };
+  } else if (
     normalizedStatus.includes("sent") ||
     normalizedStatus.includes("complete") ||
     normalizedStatus.includes("replied")
   ) {
-    return (
-      <span className="inline-flex rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-        {status}
-      </span>
-    );
-  }
-
-  if (
+    style = {
+      text: "#2F8F46",
+      background:
+        "rgba(47, 143, 70, 0.08)",
+      border:
+        "rgba(47, 143, 70, 0.20)",
+      dot: "#2F8F46",
+    };
+  } else if (
     normalizedStatus.includes("draft")
   ) {
-    return (
-      <span className="inline-flex rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400">
-        {status}
-      </span>
-    );
+    style = {
+      text: "#3E63A8",
+      background:
+        "rgba(62, 99, 168, 0.08)",
+      border:
+        "rgba(62, 99, 168, 0.20)",
+      dot: "#3E63A8",
+    };
+  } else if (
+    normalizedStatus.includes("blocked") ||
+    normalizedStatus.includes("sensitive") ||
+    normalizedStatus.includes("manual") ||
+    normalizedStatus.includes("approval") ||
+    normalizedStatus.includes("review")
+  ) {
+    style = {
+      text: "#A67416",
+      background:
+        "rgba(166, 116, 22, 0.08)",
+      border:
+        "rgba(166, 116, 22, 0.20)",
+      dot: "#A67416",
+    };
+  } else {
+    style = {
+      text: "#526173",
+      background:
+        "rgba(82, 97, 115, 0.08)",
+      border:
+        "rgba(82, 97, 115, 0.20)",
+      dot: "#526173",
+    };
   }
 
   return (
-    <span className="inline-flex rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
-      {status || "Pending"}
+    <span
+      className="inline-flex max-w-[175px] items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold"
+      style={{
+        color: style.text,
+        backgroundColor:
+          style.background,
+        borderColor: style.border,
+      }}
+      title={status || "Pending"}
+    >
+      <span
+        className="h-1.5 w-1.5 shrink-0 rounded-full"
+        style={{
+          backgroundColor: style.dot,
+        }}
+      />
+
+      <span className="truncate">
+        {status || "Pending"}
+      </span>
     </span>
   );
+}
+
+function TableHeading({
+  label,
+}: {
+  label: string;
+}) {
+  return (
+    <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+      {label}
+    </th>
+  );
+}
+
+function PageButton({
+  page,
+  currentPage,
+  onClick,
+}: {
+  page: number;
+  currentPage: number;
+  onClick: (page: number) => void;
+}) {
+  const isActive =
+    page === currentPage;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(page)}
+      aria-label={`Go to page ${page}`}
+      aria-current={
+        isActive ? "page" : undefined
+      }
+      className={
+        isActive
+          ? "inline-flex h-9 min-w-9 items-center justify-center rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground"
+          : "inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium transition hover:bg-muted/40"
+      }
+    >
+      {page}
+    </button>
+  );
+}
+
+function TableSkeleton() {
+  return (
+    <>
+      {Array.from({
+        length: 8,
+      }).map((_, rowIndex) => (
+        <tr
+          key={rowIndex}
+          className="border-b border-border/55 last:border-b-0"
+        >
+          {Array.from({
+            length: 7,
+          }).map((__, columnIndex) => (
+            <td
+              key={columnIndex}
+              className="px-5 py-5"
+            >
+              <div className="h-5 animate-pulse rounded-md bg-muted" />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}
+
+function getInitials(name: string) {
+  const words = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (words.length === 0) {
+    return "?";
+  }
+
+  if (words.length === 1) {
+    return words[0]
+      .slice(0, 2)
+      .toUpperCase();
+  }
+
+  return `${words[0][0]}${
+    words[words.length - 1][0]
+  }`.toUpperCase();
+}
+
+function getDateKey(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return [
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  ].join("-");
 }

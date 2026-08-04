@@ -8,26 +8,53 @@ interface AutomationStatusCardProps {
   status?: "success" | "warning" | "danger" | "neutral";
 }
 
-const STATUS_STYLES = {
+interface StatusStyle {
+  main: string;
+  softBackground: string;
+  softBorder: string;
+  badgeBackground: string;
+  badgeBorder: string;
+  badgeLabel: string;
+}
+
+const STATUS_STYLES: Record<
+  NonNullable<AutomationStatusCardProps["status"]>,
+  StatusStyle
+> = {
   success: {
-    badge:
-      "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
-    dot: "bg-emerald-400",
+    main: "#2F8F46",
+    softBackground: "rgba(47, 143, 70, 0.08)",
+    softBorder: "rgba(47, 143, 70, 0.20)",
+    badgeBackground: "rgba(47, 143, 70, 0.07)",
+    badgeBorder: "rgba(47, 143, 70, 0.20)",
+    badgeLabel: "Healthy",
   },
+
   warning: {
-    badge:
-      "border-amber-500/20 bg-amber-500/10 text-amber-300",
-    dot: "bg-amber-400",
+    main: "#A67416",
+    softBackground: "rgba(166, 116, 22, 0.08)",
+    softBorder: "rgba(166, 116, 22, 0.20)",
+    badgeBackground: "rgba(166, 116, 22, 0.07)",
+    badgeBorder: "rgba(166, 116, 22, 0.20)",
+    badgeLabel: "Attention",
   },
+
   danger: {
-    badge:
-      "border-rose-500/20 bg-rose-500/10 text-rose-300",
-    dot: "bg-rose-400",
+    main: "#C11007",
+    softBackground: "rgba(193, 16, 7, 0.07)",
+    softBorder: "rgba(193, 16, 7, 0.21)",
+    badgeBackground: "rgba(193, 16, 7, 0.06)",
+    badgeBorder: "rgba(193, 16, 7, 0.21)",
+    badgeLabel: "Critical",
   },
+
   neutral: {
-    badge:
-      "border-slate-500/20 bg-slate-500/10 text-slate-300",
-    dot: "bg-slate-400",
+    main: "#526173",
+    softBackground: "rgba(82, 97, 115, 0.08)",
+    softBorder: "rgba(82, 97, 115, 0.20)",
+    badgeBackground: "rgba(82, 97, 115, 0.07)",
+    badgeBorder: "rgba(82, 97, 115, 0.20)",
+    badgeLabel: "Live",
   },
 };
 
@@ -38,40 +65,79 @@ export function AutomationStatusCard({
   icon,
   status = "neutral",
 }: AutomationStatusCardProps) {
-  const styles = STATUS_STYLES[status];
+  const style = STATUS_STYLES[status];
 
   return (
-    <article className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:shadow-md">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-muted-foreground">
-            {title}
-          </p>
+    <article className="group relative min-h-[178px] overflow-hidden rounded-2xl border border-border/70 bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:shadow-md">
+      <div
+        aria-hidden="true"
+        className="absolute inset-y-5 left-0 w-[3px] rounded-r-full opacity-70 transition-opacity duration-200 group-hover:opacity-100"
+        style={{
+          backgroundColor: style.main,
+        }}
+      />
 
-          <p className="mt-3 truncate text-3xl font-bold tracking-tight text-foreground">
+      <div className="flex items-start justify-between gap-4 pl-1">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span
+              className="h-2 w-2 shrink-0 rounded-full"
+              style={{
+                backgroundColor: style.main,
+              }}
+            />
+
+            <p className="truncate text-sm font-medium text-muted-foreground">
+              {title}
+            </p>
+          </div>
+
+          <p className="mt-3 truncate text-3xl font-semibold tracking-[-0.03em] text-card-foreground">
             {value}
           </p>
         </div>
 
-        {icon ? (
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-muted/30 text-muted-foreground">
-            {icon}
-          </div>
-        ) : (
+        {icon && (
           <div
-            className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${styles.badge}`}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-transform duration-200 group-hover:scale-105"
+            style={{
+              color: style.main,
+              backgroundColor: style.softBackground,
+              borderColor: style.softBorder,
+            }}
           >
-            <span
-              className={`h-2 w-2 rounded-full ${styles.dot}`}
-            />
-            Live
+            {icon}
           </div>
         )}
       </div>
 
-      <p className="mt-4 text-sm leading-6 text-muted-foreground">
+      <p className="mt-4 min-h-10 pl-1 text-sm leading-5 text-muted-foreground">
         {subtitle}
       </p>
+
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-border/60 pt-4 pl-1">
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold"
+          style={{
+            color: style.main,
+            backgroundColor: style.badgeBackground,
+            borderColor: style.badgeBorder,
+          }}
+        >
+          <span
+            className="h-1.5 w-1.5 rounded-full"
+            style={{
+              backgroundColor: style.main,
+            }}
+          />
+
+          {style.badgeLabel}
+        </span>
+
+        <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+          Automation
+        </span>
+      </div>
     </article>
   );
 }

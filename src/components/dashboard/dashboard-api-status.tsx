@@ -14,6 +14,26 @@ interface DashboardApiStatusProps {
   onRefresh: () => Promise<void>;
 }
 
+function formatUpdatedTime(value?: string) {
+  if (!value) {
+    return "Live data is available";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Live data is available";
+  }
+
+  return `Updated ${new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Kolkata",
+  }).format(date)}`;
+}
+
 export function DashboardApiStatus({
   isLoading,
   error,
@@ -22,18 +42,18 @@ export function DashboardApiStatus({
 }: DashboardApiStatusProps) {
   if (isLoading) {
     return (
-      <section className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 shadow-sm">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted">
-          <LoaderCircle className="h-5 w-5 animate-spin text-muted-foreground" />
+      <section className="flex min-w-[280px] items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground">
+          <LoaderCircle className="h-5 w-5 animate-spin" />
         </div>
 
-        <div>
-          <p className="text-sm font-semibold">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-card-foreground">
             Connecting to n8n
           </p>
 
-          <p className="mt-1 text-xs text-muted-foreground">
-            Loading live dashboard data...
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            Loading dashboard data...
           </p>
         </div>
       </section>
@@ -42,66 +62,63 @@ export function DashboardApiStatus({
 
   if (error) {
     return (
-      <section className="flex flex-col gap-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 px-5 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
-            <AlertCircle className="h-5 w-5" />
-          </div>
+      <section className="flex min-w-[280px] items-center gap-3 rounded-2xl border border-[var(--warning)]/35 bg-card px-4 py-3 shadow-sm">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--warning)]/30 bg-[var(--warning)]/10 text-[var(--warning)]">
+          <AlertCircle className="h-5 w-5" />
+        </div>
 
-          <div>
-            <p className="text-sm font-semibold">
-              n8n dashboard connection unavailable
-            </p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-card-foreground">
+            Connection unavailable
+          </p>
 
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              {error} Fallback dashboard data is currently
-              displayed.
-            </p>
-          </div>
+          <p
+            className="mt-0.5 truncate text-xs text-muted-foreground"
+            title={error}
+          >
+            Fallback data is currently displayed
+          </p>
         </div>
 
         <button
           type="button"
           onClick={() => void onRefresh()}
-          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-medium transition hover:bg-accent"
+          aria-label="Retry dashboard connection"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-ring/50 hover:text-foreground"
         >
           <RefreshCw className="h-4 w-4" />
-          Retry
         </button>
       </section>
     );
   }
 
   return (
-    <section className="flex flex-col gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 px-5 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
-          <CheckCircle2 className="h-5 w-5" />
-        </div>
+    <section className="flex min-w-[280px] items-center gap-3 rounded-2xl border border-[var(--success)]/30 bg-card px-4 py-3 shadow-sm">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--success)]/25 bg-[var(--success)]/10 text-[var(--success)]">
+        <CheckCircle2 className="h-5 w-5" />
+      </div>
 
-        <div>
-          <p className="text-sm font-semibold">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="truncate text-sm font-semibold text-card-foreground">
             Connected to n8n
           </p>
 
-          <p className="mt-1 text-xs text-muted-foreground">
-            Live Google Sheets data loaded successfully
-            {generatedAt
-              ? ` · Updated ${new Date(
-                  generatedAt
-                ).toLocaleString()}`
-              : ""}
-          </p>
+          <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--success)]" />
         </div>
+
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+          {formatUpdatedTime(generatedAt)}
+        </p>
       </div>
 
       <button
         type="button"
         onClick={() => void onRefresh()}
-        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-medium transition hover:bg-accent"
+        aria-label="Refresh dashboard data"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-ring/50 hover:text-foreground"
       >
-        <RefreshCw className="h-4 w-4" />
-        Refresh
+        <RefreshCw className="h-4 w-4 transition-transform duration-300 hover:rotate-90" />
       </button>
     </section>
   );

@@ -1,65 +1,173 @@
 "use client";
 
-import { Bell, Search, Sparkles } from "lucide-react";
+import {
+  CalendarDays,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react";
+import {
+  useEffect,
+  useState,
+} from "react";
+
+interface HeaderDateTime {
+  greeting: string;
+  dayName: string;
+  fullDate: string;
+  time: string;
+}
+
+function getHeaderDateTime(): HeaderDateTime {
+  const now = new Date();
+  const hour = now.getHours();
+
+  let greeting = "Good Night";
+
+  if (hour >= 5 && hour < 12) {
+    greeting = "Good Morning";
+  } else if (hour >= 12 && hour < 17) {
+    greeting = "Good Afternoon";
+  } else if (hour >= 17 && hour < 21) {
+    greeting = "Good Evening";
+  }
+
+  return {
+    greeting,
+
+    dayName: new Intl.DateTimeFormat(
+      "en-IN",
+      {
+        weekday: "long",
+      }
+    ).format(now),
+
+    fullDate: new Intl.DateTimeFormat(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }
+    ).format(now),
+
+    time: new Intl.DateTimeFormat(
+      "en-IN",
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      }
+    ).format(now),
+  };
+}
 
 export function AppHeader() {
+  const [dateTime, setDateTime] =
+    useState<HeaderDateTime | null>(null);
+
+  const [isRefreshing, setIsRefreshing] =
+    useState(false);
+
+  useEffect(() => {
+    const updateDateTime = () => {
+      setDateTime(getHeaderDateTime());
+    };
+
+    updateDateTime();
+
+    const intervalId =
+      window.setInterval(
+        updateDateTime,
+        60 * 1000
+      );
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  function handleRefresh() {
+    setIsRefreshing(true);
+
+    window.setTimeout(() => {
+      window.location.reload();
+    }, 350);
+  }
+
   return (
-    <header className="sticky top-0 z-20 border-b border-border/70 bg-background/90 backdrop-blur-xl">
-      <div className="flex min-h-20 items-center justify-between gap-4 px-6 lg:px-8">
-        {/* Left section */}
+    <header className="sticky top-0 z-20 shrink-0 border-b border-border bg-background/95 backdrop-blur-lg">
+      <div className="flex min-h-[92px] flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-8">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="truncate text-xl font-bold tracking-tight">
-              Dashboard
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground">
+              {dateTime?.greeting ??
+                "AI Email Assistant"}
             </h1>
 
-            <div className="hidden items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary sm:flex">
-              <Sparkles className="h-3 w-3" />
-              AI Powered
-            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(49,201,80,0.22)] bg-[rgba(49,201,80,0.08)] px-2.5 py-1 text-xs font-semibold text-[#208F38]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#31C950]" />
+
+              AI workspace active
+            </span>
           </div>
 
-          <p className="mt-1 truncate text-sm text-muted-foreground">
-            Monitor and manage your AI email automation
+          <p className="mt-1.5 truncate text-sm text-muted-foreground">
+            Here&apos;s what your AI assistant
+            handled today.
           </p>
         </div>
 
-        {/* Right section */}
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          {/* Search */}
-          <div className="relative hidden lg:block">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex min-w-[205px] items-center gap-3 rounded-xl border border-border/70 bg-card px-4 py-2.5 shadow-sm">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[rgba(21,93,252,0.20)] bg-[rgba(21,93,252,0.08)] text-[#155DFC]">
+              <CalendarDays className="h-4 w-4" />
+            </div>
 
-            <input
-              type="search"
-              placeholder="Search emails..."
-              aria-label="Search emails"
-              className="h-11 w-72 rounded-xl border border-border/80 bg-muted/30 pl-10 pr-4 text-sm outline-none transition-all duration-200 placeholder:text-muted-foreground hover:border-border focus:border-primary/50 focus:bg-background focus:ring-4 focus:ring-primary/10 xl:w-80"
-            />
+            <div className="min-w-0">
+              <p className="truncate text-xs font-medium text-muted-foreground">
+                {dateTime?.dayName ??
+                  "Today"}
+              </p>
 
-            <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border border-border bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground xl:block">
-              Ctrl K
-            </kbd>
+              <p className="mt-0.5 truncate text-sm font-semibold text-foreground">
+                {dateTime?.fullDate ??
+                  "Loading date"}
+              </p>
+            </div>
           </div>
 
-          {/* Mobile search button */}
+          <div className="flex min-w-[180px] items-center gap-3 rounded-xl border border-border/70 bg-card px-4 py-2.5 shadow-sm">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[rgba(9,179,166,0.22)] bg-[rgba(9,179,166,0.08)] text-[#087D75]">
+              <Sparkles className="h-4 w-4" />
+            </div>
+
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-muted-foreground">
+                Local time
+              </p>
+
+              <p className="mt-0.5 text-sm font-semibold text-foreground">
+                {dateTime?.time ??
+                  "--:--"}
+              </p>
+            </div>
+          </div>
+
           <button
             type="button"
-            aria-label="Search emails"
-            className="flex h-11 w-11 items-center justify-center rounded-xl border border-border/80 bg-background text-muted-foreground transition-all hover:bg-accent hover:text-foreground lg:hidden"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="inline-flex h-[58px] items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-muted/40 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Search className="h-5 w-5" />
-          </button>
+            <RefreshCw
+              className={`h-4 w-4 ${
+                isRefreshing
+                  ? "animate-spin"
+                  : ""
+              }`}
+            />
 
-          {/* Notification button */}
-          <button
-            type="button"
-            aria-label="Open notifications"
-            className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-border/80 bg-background text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
-          >
-            <Bell className="h-5 w-5" />
-
-            <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
+            Refresh
           </button>
         </div>
       </div>

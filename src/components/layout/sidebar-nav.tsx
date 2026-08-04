@@ -2,39 +2,56 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { navItems } from "./nav-items";
+
 import { cn } from "@/lib/utils";
+import { navItems } from "./nav-items";
 
 export function SidebarNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex-1 px-3 py-4">
+    <nav className="min-h-0 flex-1 overflow-y-auto px-4 py-2">
       <ul className="space-y-1">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive =
+            item.href === "/"
+              ? pathname === "/"
+              : pathname.startsWith(item.href);
+
+          const Icon = item.icon;
 
           return (
             <li key={item.title}>
               <Link
                 href={item.href}
                 className={cn(
-                  "flex items-center justify-between rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200",
+                  "group flex min-h-12 items-center gap-3 rounded-xl border px-3 py-2.5 transition-all duration-200",
                   isActive
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    ? "border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                    : "border-transparent text-muted-foreground hover:translate-x-0.5 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                 )}
               >
-                <div className="flex items-center gap-3">
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.title}</span>
+                <div
+                  className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-all duration-200",
+                    isActive
+                      ? "border-sidebar-primary/25 bg-sidebar-primary text-sidebar-primary-foreground"
+                      : "border-sidebar-border bg-sidebar text-muted-foreground group-hover:text-sidebar-primary"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
                 </div>
 
-                {item.badge && (
-                  <span className="rounded-full bg-background/20 px-2 py-0.5 text-xs font-semibold">
-                    {item.badge}
-                  </span>
-                )}
+                <span
+                  className={cn(
+                    "min-w-0 flex-1 truncate text-sm font-semibold",
+                    isActive
+                      ? "text-sidebar-accent-foreground"
+                      : "text-muted-foreground group-hover:text-sidebar-foreground"
+                  )}
+                >
+                  {item.title}
+                </span>
               </Link>
             </li>
           );

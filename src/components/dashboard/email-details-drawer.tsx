@@ -17,11 +17,13 @@ import {
   Tag,
   User,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import {
   useEffect,
   useMemo,
   useState,
+  type ReactNode,
 } from "react";
 
 import { cn } from "@/lib/utils";
@@ -199,12 +201,12 @@ export function EmailDetailsDrawer({
     Boolean(draftBody.trim()) &&
     !isSending;
 
-  const handleEditToggle = () => {
+  function handleEditToggle() {
     setSendError("");
     setIsEditing((current) => !current);
-  };
+  }
 
-  const handleSendDraft = async () => {
+  async function handleSendDraft() {
     if (!canSend) {
       return;
     }
@@ -242,13 +244,17 @@ export function EmailDetailsDrawer({
         to: draftTo.trim(),
         subject: draftSubject.trim(),
         body: draftBody,
+
         html:
-          cleanDraftValue(email.draftHtml) ||
-          createBasicEmailHtml(draftBody),
+          cleanDraftValue(
+            email.draftHtml
+          ) ||
+          createBasicEmailHtml(
+            draftBody
+          ),
       });
 
       setIsEditing(false);
-
       onClose();
     } catch (error) {
       setSendError(
@@ -259,7 +265,7 @@ export function EmailDetailsDrawer({
     } finally {
       setIsSending(false);
     }
-  };
+  }
 
   return (
     <>
@@ -268,7 +274,7 @@ export function EmailDetailsDrawer({
         aria-label="Close email modal"
         onClick={onClose}
         className={cn(
-          "fixed inset-0 z-40 bg-black/60 backdrop-blur-md transition-all duration-300",
+          "fixed inset-0 z-40 bg-[#0C0A09]/55 backdrop-blur-sm transition-opacity duration-200",
           isOpen
             ? "pointer-events-auto opacity-100"
             : "pointer-events-none opacity-0"
@@ -281,7 +287,7 @@ export function EmailDetailsDrawer({
         aria-hidden={!isOpen}
         aria-labelledby="email-modal-title"
         className={cn(
-          "fixed inset-0 z-50 flex items-center justify-center p-3 transition-all duration-300 sm:p-6",
+          "fixed inset-0 z-50 flex items-center justify-center p-2 transition-all duration-200 sm:p-5",
           isOpen
             ? "pointer-events-auto opacity-100"
             : "pointer-events-none opacity-0"
@@ -289,49 +295,56 @@ export function EmailDetailsDrawer({
       >
         <div
           className={cn(
-            "relative flex h-[calc(100dvh-16px)] max-h-[900px] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-border bg-background shadow-2xl transition-all duration-300",
+            "relative flex h-[calc(100dvh-16px)] max-h-[920px] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-[0_30px_90px_rgba(12,10,9,0.28)] transition-all duration-200",
             isOpen
               ? "translate-y-0 scale-100"
-              : "translate-y-5 scale-95"
+              : "translate-y-3 scale-[0.98]"
           )}
         >
-          <header className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-5 py-5 sm:px-7">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
-                  AI Email Assistant
-                </p>
-
-                {email.draftCreated && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    Draft ready
-                  </span>
-                )}
+          <header className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/30 text-muted-foreground">
+                <Mail className="h-4.5 w-4.5" />
               </div>
 
-              <h2
-                id="email-modal-title"
-                className="mt-2 line-clamp-2 text-xl font-bold tracking-tight sm:text-2xl"
-              >
-                {email.subject}
-              </h2>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    Email Details
+                  </p>
 
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                <span>
-                  From:{" "}
-                  <strong className="font-medium text-foreground">
-                    {email.senderName}
-                  </strong>
-                </span>
+                  {email.draftCreated && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(47,143,70,0.20)] bg-[rgba(47,143,70,0.08)] px-2.5 py-1 text-xs font-semibold text-[#2F8F46]">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
 
-                <span className="hidden sm:inline">
-                  •
-                </span>
+                      Draft ready
+                    </span>
+                  )}
+                </div>
 
-                <span>
-                  {email.receivedAtFull}
-                </span>
+                <h2
+                  id="email-modal-title"
+                  className="mt-1.5 line-clamp-2 text-xl font-semibold tracking-tight text-foreground sm:text-2xl"
+                >
+                  {email.subject}
+                </h2>
+
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                  <span>
+                    From{" "}
+                    <strong className="font-semibold text-foreground">
+                      {email.senderName}
+                    </strong>
+                  </span>
+
+                  <span className="hidden sm:inline">
+                    •
+                  </span>
+
+                  <span>
+                    {email.receivedAtFull}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -339,13 +352,13 @@ export function EmailDetailsDrawer({
               type="button"
               onClick={onClose}
               aria-label="Close email details"
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border text-muted-foreground transition hover:bg-accent hover:text-foreground"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border text-muted-foreground transition-all duration-200 hover:bg-muted/40 hover:text-foreground"
             >
               <X className="h-5 w-5" />
             </button>
           </header>
 
-          <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border bg-muted/20 px-4 py-3 sm:px-7">
+          <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border bg-muted/10 px-4 py-3 sm:px-6">
             <TabButton
               label="Preview"
               icon={Eye}
@@ -374,7 +387,7 @@ export function EmailDetailsDrawer({
             />
           </div>
 
-          <main className="min-h-0 flex-1 overflow-y-auto">
+          <main className="min-h-0 flex-1 overflow-y-auto bg-muted/5">
             {activeTab === "preview" && (
               <PreviewTab
                 email={email}
@@ -387,7 +400,9 @@ export function EmailDetailsDrawer({
                 setDraftSubject={
                   setDraftSubject
                 }
-                setDraftBody={setDraftBody}
+                setDraftBody={
+                  setDraftBody
+                }
               />
             )}
 
@@ -407,10 +422,12 @@ export function EmailDetailsDrawer({
             )}
           </main>
 
-          <footer className="shrink-0 border-t border-border bg-background/95 px-5 py-4 backdrop-blur sm:px-7">
+          <footer className="shrink-0 border-t border-border bg-background/95 px-5 py-4 backdrop-blur sm:px-6">
             {sendError && (
-              <div className="mb-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
-                {sendError}
+              <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-[rgba(193,16,7,0.22)] bg-[rgba(193,16,7,0.07)] px-4 py-3 text-sm text-[#C11007]">
+                <Clock3 className="mt-0.5 h-4 w-4 shrink-0" />
+
+                <p>{sendError}</p>
               </div>
             )}
 
@@ -418,7 +435,7 @@ export function EmailDetailsDrawer({
               <div className="min-w-0 text-xs text-muted-foreground">
                 <p>
                   Google Sheet Row:{" "}
-                  <span className="font-mono">
+                  <span className="font-mono font-medium text-foreground">
                     {email.rowNumber > 0
                       ? email.rowNumber
                       : "Not available"}
@@ -426,7 +443,7 @@ export function EmailDetailsDrawer({
                 </p>
 
                 {email.draftId && (
-                  <p className="mt-1 truncate">
+                  <p className="mt-1 max-w-md truncate">
                     Draft ID:{" "}
                     <span className="font-mono">
                       {email.draftId}
@@ -441,7 +458,7 @@ export function EmailDetailsDrawer({
                     type="button"
                     onClick={handleEditToggle}
                     disabled={isSending}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold text-foreground transition-all duration-200 hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isEditing ? (
                       <>
@@ -474,7 +491,7 @@ export function EmailDetailsDrawer({
                               ? "Draft body missing hai"
                               : "Send email directly"
                   }
-                  className="inline-flex h-11 min-w-28 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                  className="inline-flex h-11 min-w-28 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-all duration-200 hover:-translate-y-0.5 hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
                 >
                   {isSending ? (
                     <>
@@ -527,7 +544,7 @@ function PreviewTab({
     Boolean(email.draftHtml);
 
   return (
-    <div className="p-3 sm:p-5">
+    <div className="p-4 sm:p-6">
       {!hasDraft ? (
         <EmptyState
           icon={FileText}
@@ -537,15 +554,11 @@ function PreviewTab({
       ) : (
         <div className="mx-auto max-w-4xl">
           {isEditing ? (
-            <div className="space-y-5 rounded-2xl border border-border bg-card p-5 sm:p-6">
-              <div>
-                <label
-                  htmlFor="draft-to"
-                  className="text-xs font-bold uppercase tracking-wide text-muted-foreground"
-                >
-                  To
-                </label>
-
+            <div className="space-y-5 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+              <FormField
+                label="To"
+                htmlFor="draft-to"
+              >
                 <input
                   id="draft-to"
                   type="email"
@@ -556,18 +569,14 @@ function PreviewTab({
                     )
                   }
                   placeholder="recipient@example.com"
-                  className="mt-2 h-11 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="mt-2 h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground outline-none transition-all duration-200 placeholder:text-muted-foreground hover:border-ring/40 focus:border-ring focus:ring-4 focus:ring-ring/10"
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label
-                  htmlFor="draft-subject"
-                  className="text-xs font-bold uppercase tracking-wide text-muted-foreground"
-                >
-                  Subject
-                </label>
-
+              <FormField
+                label="Subject"
+                htmlFor="draft-subject"
+              >
                 <input
                   id="draft-subject"
                   type="text"
@@ -578,18 +587,14 @@ function PreviewTab({
                     )
                   }
                   placeholder="Email subject"
-                  className="mt-2 h-11 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="mt-2 h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground outline-none transition-all duration-200 placeholder:text-muted-foreground hover:border-ring/40 focus:border-ring focus:ring-4 focus:ring-ring/10"
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label
-                  htmlFor="draft-body"
-                  className="text-xs font-bold uppercase tracking-wide text-muted-foreground"
-                >
-                  Message
-                </label>
-
+              <FormField
+                label="Message"
+                htmlFor="draft-body"
+              >
                 <textarea
                   id="draft-body"
                   value={draftBody}
@@ -600,28 +605,28 @@ function PreviewTab({
                   }
                   placeholder="Write email reply..."
                   rows={14}
-                  className="mt-2 min-h-80 w-full resize-y rounded-xl border border-border bg-background px-4 py-4 text-sm leading-7 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="mt-2 min-h-80 w-full resize-y rounded-xl border border-border bg-background px-4 py-4 text-sm leading-7 text-foreground outline-none transition-all duration-200 placeholder:text-muted-foreground hover:border-ring/40 focus:border-ring focus:ring-4 focus:ring-ring/10"
                 />
-              </div>
+              </FormField>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f0f10] shadow-sm">
-              <div className="border-b border-white/10 bg-[#151517] px-5 py-4">
+            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+              <div className="border-b border-border bg-muted/15 px-5 py-4">
                 <div className="grid gap-3 text-sm sm:grid-cols-[80px_1fr]">
-                  <p className="font-semibold text-zinc-400">
+                  <p className="font-medium text-muted-foreground">
                     To
                   </p>
 
-                  <p className="break-all font-medium text-zinc-100">
+                  <p className="break-all font-medium text-foreground">
                     {draftTo ||
                       "Recipient unavailable"}
                   </p>
 
-                  <p className="font-semibold text-zinc-400">
+                  <p className="font-medium text-muted-foreground">
                     Subject
                   </p>
 
-                  <p className="font-semibold text-zinc-100">
+                  <p className="font-semibold text-foreground">
                     {draftSubject ||
                       "No subject"}
                   </p>
@@ -646,7 +651,8 @@ function PreviewTab({
 
                   const contentHeight =
                     Math.max(
-                      frameDocument.documentElement
+                      frameDocument
+                        .documentElement
                         .scrollHeight,
                       frameDocument.body
                         .scrollHeight
@@ -655,7 +661,8 @@ function PreviewTab({
                   const availableHeight =
                     Math.max(
                       300,
-                      window.innerHeight - 355
+                      window.innerHeight -
+                        355
                     );
 
                   const finalHeight =
@@ -670,7 +677,7 @@ function PreviewTab({
                   frame.style.height =
                     `${finalHeight}px`;
                 }}
-                className="h-[420px] w-full border-0 bg-[#0f0f10]"
+                className="h-[420px] w-full border-0 bg-white"
               />
             </div>
           )}
@@ -680,28 +687,26 @@ function PreviewTab({
   );
 }
 
-interface OriginalEmailTabProps {
-  email: EmailItem;
-}
-
 function OriginalEmailTab({
   email,
-}: OriginalEmailTabProps) {
+}: {
+  email: EmailItem;
+}) {
   return (
-    <div className="p-5 sm:p-7">
-      <div className="mx-auto max-w-4xl space-y-5">
-        <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+    <div className="p-4 sm:p-6">
+      <div className="mx-auto max-w-4xl space-y-4">
+        <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/30 text-muted-foreground">
               <User className="h-5 w-5" />
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                 From
               </p>
 
-              <p className="mt-1 font-semibold">
+              <p className="mt-1 font-semibold text-foreground">
                 {email.senderName}
               </p>
 
@@ -711,74 +716,62 @@ function OriginalEmailTab({
             </div>
 
             <div className="hidden text-right sm:block">
-              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                 Received
               </p>
 
-              <p className="mt-1 text-sm font-medium">
+              <p className="mt-1 text-sm font-medium text-foreground">
                 {email.receivedAtFull}
               </p>
             </div>
           </div>
 
           <div className="mt-5 border-t border-border pt-5">
-            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
               Subject
             </p>
 
-            <p className="mt-2 text-lg font-bold">
+            <p className="mt-2 text-lg font-semibold text-foreground">
               {email.subject}
             </p>
           </div>
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-          <div className="flex items-center gap-2">
-            <Mail className="h-4 w-4 text-primary" />
-
-            <h3 className="font-semibold">
-              Original email content
-            </h3>
-          </div>
-
+        <ContentSection
+          icon={Mail}
+          title="Original email content"
+        >
           {email.originalBody ||
           email.originalHtml ? (
-            <div className="mt-4 whitespace-pre-wrap rounded-xl border border-border bg-muted/20 p-5 text-sm leading-7">
+            <div className="whitespace-pre-wrap rounded-xl border border-border bg-muted/10 p-5 text-sm leading-7 text-foreground">
               {email.originalBody ||
                 email.originalHtml}
             </div>
           ) : (
-            <div className="mt-4 rounded-xl border border-dashed border-border bg-muted/20 px-5 py-8 text-center">
-              <p className="text-sm font-semibold">
-                Original email body
-                dashboard data me available
-                nahi hai.
+            <div className="rounded-xl border border-dashed border-border bg-muted/10 px-5 py-8 text-center">
+              <p className="text-sm font-medium text-muted-foreground">
+                Original email body dashboard
+                data me available nahi hai.
               </p>
             </div>
           )}
-        </section>
+        </ContentSection>
 
-        <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-          <p className="text-sm font-semibold">
-            Available AI Summary
-          </p>
-
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-muted-foreground">
+        <ContentSection
+          icon={Bot}
+          title="Available AI Summary"
+        >
+          <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">
             {email.summary}
           </p>
-        </section>
+        </ContentSection>
 
         {email.hasAttachment && (
-          <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-            <div className="flex items-center gap-2">
-              <Paperclip className="h-4 w-4 text-primary" />
-
-              <p className="font-semibold">
-                Attachment
-              </p>
-            </div>
-
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <ContentSection
+            icon={Paperclip}
+            title="Attachment"
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
               <DetailRow
                 label="File"
                 value={
@@ -797,8 +790,8 @@ function OriginalEmailTab({
             </div>
 
             {email.attachmentSummary && (
-              <div className="mt-5">
-                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              <div className="mt-5 border-t border-border pt-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                   Attachment Summary
                 </p>
 
@@ -807,29 +800,27 @@ function OriginalEmailTab({
                 </p>
               </div>
             )}
-          </section>
+          </ContentSection>
         )}
       </div>
     </div>
   );
 }
 
-interface AIAnalysisTabProps {
-  email: EmailItem;
-  confidenceText: string;
-}
-
 function AIAnalysisTab({
   email,
   confidenceText,
-}: AIAnalysisTabProps) {
+}: {
+  email: EmailItem;
+  confidenceText: string;
+}) {
   return (
-    <div className="p-5 sm:p-7">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <div className="p-4 sm:p-6">
+      <div className="mx-auto max-w-5xl space-y-5">
         <section>
-          <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+          <SectionLabel>
             Classification
-          </h3>
+          </SectionLabel>
 
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <InfoCard
@@ -843,7 +834,9 @@ function AIAnalysisTab({
               label="Priority"
               value={
                 <EmailPriorityBadge
-                  priority={email.priority}
+                  priority={
+                    email.priority
+                  }
                 />
               }
             />
@@ -886,24 +879,19 @@ function AIAnalysisTab({
           </div>
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-          <div className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-primary" />
-
-            <h3 className="font-semibold">
-              AI-generated summary
-            </h3>
-          </div>
-
-          <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-muted-foreground">
+        <ContentSection
+          icon={Bot}
+          title="AI-generated summary"
+        >
+          <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">
             {email.summary}
           </p>
-        </section>
+        </ContentSection>
 
         <section>
-          <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+          <SectionLabel>
             Automation Results
-          </h3>
+          </SectionLabel>
 
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <BooleanCard
@@ -923,7 +911,9 @@ function AIAnalysisTab({
 
             <BooleanCard
               label="Calendar Created"
-              value={email.calendarCreated}
+              value={
+                email.calendarCreated
+              }
             />
           </div>
         </section>
@@ -931,16 +921,11 @@ function AIAnalysisTab({
         {(email.calendarCreated ||
           email.meetingDate ||
           email.googleMeetLink) && (
-          <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-            <div className="flex items-center gap-2">
-              <CalendarClock className="h-5 w-5 text-primary" />
-
-              <h3 className="font-semibold">
-                Calendar Analysis
-              </h3>
-            </div>
-
-            <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <ContentSection
+            icon={CalendarClock}
+            title="Calendar Analysis"
+          >
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               <DetailRow
                 label="Calendar Status"
                 value={
@@ -992,7 +977,7 @@ function AIAnalysisTab({
 
             {email.calendarReason && (
               <div className="mt-5 border-t border-border pt-5">
-                <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                   Calendar Reason
                 </p>
 
@@ -1001,11 +986,11 @@ function AIAnalysisTab({
                 </p>
               </div>
             )}
-          </section>
+          </ContentSection>
         )}
 
-        <section className="rounded-2xl border border-dashed border-border bg-muted/20 p-5 sm:p-6">
-          <h3 className="font-semibold">
+        <section className="rounded-2xl border border-dashed border-border bg-muted/10 p-5 sm:p-6">
+          <h3 className="font-semibold text-foreground">
             Workflow Metadata
           </h3>
 
@@ -1014,7 +999,9 @@ function AIAnalysisTab({
               label="Google Sheet Row"
               value={
                 email.rowNumber > 0
-                  ? String(email.rowNumber)
+                  ? String(
+                      email.rowNumber
+                    )
                   : "Not available"
               }
             />
@@ -1073,28 +1060,26 @@ function AIAnalysisTab({
   );
 }
 
-interface TabButtonProps {
-  label: string;
-  icon: typeof Eye;
-  active: boolean;
-  onClick: () => void;
-}
-
 function TabButton({
   label,
   icon: Icon,
   active,
   onClick,
-}: TabButtonProps) {
+}: {
+  label: string;
+  icon: LucideIcon;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition",
+        "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold transition-all duration-200",
         active
-          ? "bg-primary text-primary-foreground shadow-sm"
-          : "text-muted-foreground hover:bg-accent hover:text-foreground"
+          ? "border-border bg-card text-foreground shadow-sm"
+          : "border-transparent text-muted-foreground hover:border-border hover:bg-card hover:text-foreground"
       )}
     >
       <Icon className="h-4 w-4" />
@@ -1103,57 +1088,112 @@ function TabButton({
   );
 }
 
-interface InfoCardProps {
-  icon: typeof Mail;
+function FormField({
+  label,
+  htmlFor,
+  children,
+}: {
   label: string;
-  value: React.ReactNode;
+  htmlFor: string;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <label
+        htmlFor={htmlFor}
+        className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground"
+      >
+        {label}
+      </label>
+
+      {children}
+    </div>
+  );
+}
+
+function ContentSection({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+      <div className="mb-4 flex items-center gap-2">
+        <Icon className="h-4.5 w-4.5 text-muted-foreground" />
+
+        <h3 className="font-semibold text-foreground">
+          {title}
+        </h3>
+      </div>
+
+      {children}
+    </section>
+  );
+}
+
+function SectionLabel({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return (
+    <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      {children}
+    </h3>
+  );
 }
 
 function InfoCard({
   icon: Icon,
   label,
   value,
-}: InfoCardProps) {
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: ReactNode;
+}) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="h-4 w-4" />
 
-        <p className="text-xs font-bold uppercase tracking-wide">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em]">
           {label}
         </p>
       </div>
 
-      <div className="mt-3 break-words text-sm font-semibold">
+      <div className="mt-3 break-words text-sm font-semibold text-foreground">
         {value}
       </div>
     </div>
   );
 }
 
-interface BooleanCardProps {
-  label: string;
-  value: boolean;
-}
-
 function BooleanCard({
   label,
   value,
-}: BooleanCardProps) {
+}: {
+  label: string;
+  value: boolean;
+}) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         {label}
       </p>
 
-      <div className="mt-3 flex items-center gap-2 text-sm font-semibold">
+      <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-foreground">
         <span
-          className={cn(
-            "h-2.5 w-2.5 rounded-full",
-            value
-              ? "bg-emerald-500"
-              : "bg-muted-foreground/40"
-          )}
+          className="h-2.5 w-2.5 rounded-full"
+          style={{
+            backgroundColor: value
+              ? "#2F8F46"
+              : "#526173",
+          }}
         />
 
         {value ? "Yes" : "No"}
@@ -1162,46 +1202,42 @@ function BooleanCard({
   );
 }
 
-interface DetailRowProps {
-  label: string;
-  value: string;
-}
-
 function DetailRow({
   label,
   value,
-}: DetailRowProps) {
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div className="min-w-0">
-      <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         {label}
       </p>
 
-      <p className="mt-1 break-words text-sm font-medium">
+      <p className="mt-1 break-words text-sm font-medium text-foreground">
         {value}
       </p>
     </div>
   );
 }
 
-interface EmptyStateProps {
-  icon: typeof FileText;
-  title: string;
-  description: string;
-}
-
 function EmptyState({
   icon: Icon,
   title,
   description,
-}: EmptyStateProps) {
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+}) {
   return (
-    <div className="flex min-h-96 flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-        <Icon className="h-6 w-6" />
+    <div className="flex min-h-96 flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-12 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-muted/25 text-muted-foreground">
+        <Icon className="h-5 w-5" />
       </div>
 
-      <h3 className="mt-4 font-bold">
+      <h3 className="mt-4 font-semibold text-foreground">
         {title}
       </h3>
 
@@ -1235,7 +1271,7 @@ function cleanDraftValue(
 function createBasicEmailHtml(
   content: string
 ): string {
-  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#111827;">${escapeHtml(
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#0C0A09;">${escapeHtml(
     content
   ).replace(/\n/g, "<br />")}</div>`;
 }
@@ -1275,15 +1311,15 @@ function createPreviewDocument(
 
       body {
         margin: 0;
-        padding: clamp(18px, 2.2vw, 28px);
-        background: #0f0f10;
-        color: #f4f4f5;
+        padding: clamp(20px, 2.5vw, 32px);
+        background: #ffffff;
+        color: #0C0A09;
         font-family:
           Arial,
           Helvetica,
           sans-serif;
         font-size: clamp(14px, 0.9vw, 15px);
-        line-height: 1.65;
+        line-height: 1.7;
         overflow-wrap: anywhere;
       }
 
@@ -1303,24 +1339,23 @@ function createPreviewDocument(
       h4,
       h5,
       h6 {
-        color: inherit !important;
-        background-color: transparent !important;
+        color: inherit;
       }
 
       a {
-        color: #a78bfa !important;
+        color: #155DFC;
       }
 
       blockquote {
-        border-left: 3px solid #3f3f46;
+        border-left: 3px solid #d7dce3;
         margin-left: 0;
         padding-left: 16px;
-        color: #d4d4d8 !important;
+        color: #45556C;
       }
 
       hr {
         border: 0;
-        border-top: 1px solid #3f3f46;
+        border-top: 1px solid #e5e7eb;
       }
 
       img {

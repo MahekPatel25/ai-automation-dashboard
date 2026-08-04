@@ -2,12 +2,12 @@
 
 import { useMemo, type ReactNode } from "react";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -33,20 +33,48 @@ interface TrendRecord {
   emails: number;
 }
 
-const CHART_COLORS = [
-  "#7C8FB3",
-  "#6F9E9A",
-  "#86A789",
-  "#B89A6A",
-  "#A97C7C",
-  "#8D84A8",
-  "#6F879C",
+interface TooltipPayloadItem {
+  name?: string;
+  value?: number | string;
+  color?: string;
+  payload?: ChartRecord | TrendRecord;
+}
+
+interface AnalyticsTooltipProps {
+  active?: boolean;
+  label?: string;
+  payload?: TooltipPayloadItem[];
+  labelFormatter?: (label: string) => string;
+}
+
+const ANALYTICS_COLORS = [
+  "#155DFC",
+  "#09B3A6",
+  "#31C950",
+  "#FDC745",
+  "#EC253F",
+  "#18786F",
+  "#45556C",
+  "#7A5DFA",
+  "#FF7A59",
+  "#0C0A09",
 ];
 
-const LINE_COLOR = "#7C8FB3";
-const AXIS_TEXT_COLOR = "#AEB7C4";
-const GRID_COLOR = "#2A3038";
-const PIE_BORDER_COLOR = "#171717";
+const COLOR = {
+  green: "#31C950",
+  blue: "#155DFC",
+  yellow: "#FDC745",
+  red: "#EC253F",
+  black: "#0C0A09",
+  teal: "#18786F",
+  slate: "#45556C",
+  purple: "#7A5DFA",
+  coral: "#FF7A59",
+  cyan: "#09B3A6",
+
+  grid: "rgba(69, 85, 108, 0.20)",
+  cursor: "rgba(21, 93, 252, 0.30)",
+};
 
 function recordToChartData(
   record?: Record<string, number>
@@ -75,12 +103,11 @@ function recordToTrendData(
       date,
       emails: Number(emails) || 0,
     }))
-    .sort((first, second) => {
-      return (
+    .sort(
+      (first, second) =>
         new Date(first.date).getTime() -
         new Date(second.date).getTime()
-      );
-    });
+    );
 }
 
 function formatChartDate(value: string): string {
@@ -94,6 +121,78 @@ function formatChartDate(value: string): string {
     day: "2-digit",
     month: "short",
   }).format(parsedDate);
+}
+
+function normalizeName(value: string): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function getSemanticColor(
+  name: string,
+  chartType:
+    | "priority"
+    | "draft"
+    | "meeting"
+    | "general",
+  index: number
+): string {
+  const normalizedName = normalizeName(name);
+
+  if (chartType === "priority") {
+    if (normalizedName === "urgent") {
+      return COLOR.red;
+    }
+
+    if (normalizedName === "high") {
+      return COLOR.blue;
+    }
+
+    if (normalizedName === "medium") {
+      return COLOR.cyan;
+    }
+
+    if (normalizedName === "low") {
+      return COLOR.green;
+    }
+  }
+
+  if (chartType === "draft") {
+    if (
+      normalizedName.includes("not created") ||
+      normalizedName.includes("not generated")
+    ) {
+      return COLOR.teal;
+    }
+
+    if (
+      normalizedName.includes("created") ||
+      normalizedName.includes("generated")
+    ) {
+      return COLOR.blue;
+    }
+  }
+
+  if (chartType === "meeting") {
+    if (
+      normalizedName.includes("not created") ||
+      normalizedName.includes("not scheduled")
+    ) {
+      return COLOR.blue;
+    }
+
+    if (
+      normalizedName.includes("created") ||
+      normalizedName.includes("scheduled")
+    ) {
+      return COLOR.cyan;
+    }
+  }
+
+  return ANALYTICS_COLORS[
+    index % ANALYTICS_COLORS.length
+  ];
 }
 
 export function AnalyticsCharts({
@@ -145,13 +244,13 @@ export function AnalyticsCharts({
   return (
     <section>
       <div className="mb-4">
-        <h2 className="text-lg font-semibold">
+        <h2 className="text-lg font-semibold text-foreground">
           Advanced Analytics
         </h2>
 
         <p className="mt-1 text-sm text-muted-foreground">
           Email volume, AI classification and automation
-          distribution charts
+          distribution charts.
         </p>
       </div>
 
@@ -163,83 +262,7 @@ export function AnalyticsCharts({
           isEmpty={emailVolumeData.length === 0}
           className="xl:col-span-2"
         >
-          <ResponsiveContainer width="100%" height={320}>
-            <LineChart
-              data={emailVolumeData}
-              margin={{
-                top: 15,
-                right: 25,
-                left: -5,
-                bottom: 5,
-              }}
-            >
-              <CartesianGrid
-                strokeDasharray="4 4"
-                vertical={false}
-                stroke={GRID_COLOR}
-                strokeOpacity={0.55}
-              />
-
-              <XAxis
-                dataKey="date"
-                tickFormatter={formatChartDate}
-                axisLine={{
-                  stroke: GRID_COLOR,
-                }}
-                tickLine={false}
-                tick={{
-                  fontSize: 12,
-                  fill: AXIS_TEXT_COLOR,
-                  fontWeight: 500,
-                }}
-              />
-
-              <YAxis
-                allowDecimals={false}
-                axisLine={false}
-                tickLine={false}
-                tick={{
-                  fontSize: 12,
-                  fill: AXIS_TEXT_COLOR,
-                  fontWeight: 500,
-                }}
-              />
-
-              <Tooltip
-                cursor={{
-                  stroke: LINE_COLOR,
-                  strokeWidth: 1,
-                  strokeDasharray: "4 4",
-                  opacity: 0.65,
-                }}
-                content={
-                  <AnalyticsTooltip
-                    labelFormatter={formatChartDate}
-                  />
-                }
-              />
-
-              <Line
-                type="monotone"
-                dataKey="emails"
-                name="Emails"
-                stroke={LINE_COLOR}
-                strokeWidth={3}
-                dot={{
-                  r: 4,
-                  fill: "#171717",
-                  stroke: LINE_COLOR,
-                  strokeWidth: 2,
-                }}
-                activeDot={{
-                  r: 6,
-                  fill: LINE_COLOR,
-                  stroke: "#E5E7EB",
-                  strokeWidth: 2,
-                }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <EmailVolumeChart data={emailVolumeData} />
         </AnalyticsChartCard>
 
         <AnalyticsChartCard
@@ -248,75 +271,7 @@ export function AnalyticsCharts({
           isLoading={isLoading}
           isEmpty={categoryData.length === 0}
         >
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart
-              data={categoryData}
-              layout="vertical"
-              margin={{
-                top: 5,
-                right: 25,
-                left: 25,
-                bottom: 5,
-              }}
-            >
-              <CartesianGrid
-                strokeDasharray="4 4"
-                horizontal={false}
-                stroke={GRID_COLOR}
-                strokeOpacity={0.55}
-              />
-
-              <XAxis
-                type="number"
-                allowDecimals={false}
-                axisLine={{
-                  stroke: GRID_COLOR,
-                }}
-                tickLine={false}
-                tick={{
-                  fontSize: 12,
-                  fill: AXIS_TEXT_COLOR,
-                  fontWeight: 500,
-                }}
-              />
-
-              <YAxis
-                type="category"
-                dataKey="name"
-                width={115}
-                axisLine={false}
-                tickLine={false}
-                tick={{
-                  fontSize: 12,
-                  fill: AXIS_TEXT_COLOR,
-                  fontWeight: 500,
-                }}
-              />
-
-              <Tooltip
-                cursor={false}
-                content={<AnalyticsTooltip />}
-              />
-
-              <Bar
-                dataKey="value"
-                name="Emails"
-                radius={[0, 8, 8, 0]}
-                activeBar={false}
-              >
-                {categoryData.map((item, index) => (
-                  <Cell
-                    key={`${item.name}-${index}`}
-                    fill={
-                      CHART_COLORS[
-                        index % CHART_COLORS.length
-                      ]
-                    }
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <HorizontalBarChart data={categoryData} />
         </AnalyticsChartCard>
 
         <AnalyticsChartCard
@@ -325,7 +280,10 @@ export function AnalyticsCharts({
           isLoading={isLoading}
           isEmpty={priorityData.length === 0}
         >
-          <DonutChart data={priorityData} />
+          <DonutChart
+            data={priorityData}
+            chartType="priority"
+          />
         </AnalyticsChartCard>
 
         <AnalyticsChartCard
@@ -334,75 +292,7 @@ export function AnalyticsCharts({
           isLoading={isLoading}
           isEmpty={statusData.length === 0}
         >
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart
-              data={statusData}
-              margin={{
-                top: 15,
-                right: 15,
-                left: -5,
-                bottom: 40,
-              }}
-            >
-              <CartesianGrid
-                strokeDasharray="4 4"
-                vertical={false}
-                stroke={GRID_COLOR}
-                strokeOpacity={0.55}
-              />
-
-              <XAxis
-                dataKey="name"
-                axisLine={{
-                  stroke: GRID_COLOR,
-                }}
-                tickLine={false}
-                angle={-20}
-                textAnchor="end"
-                height={85}
-                interval={0}
-                tick={{
-                  fontSize: 11,
-                  fill: AXIS_TEXT_COLOR,
-                  fontWeight: 500,
-                }}
-              />
-
-              <YAxis
-                allowDecimals={false}
-                axisLine={false}
-                tickLine={false}
-                tick={{
-                  fontSize: 12,
-                  fill: AXIS_TEXT_COLOR,
-                  fontWeight: 500,
-                }}
-              />
-
-              <Tooltip
-                cursor={false}
-                content={<AnalyticsTooltip />}
-              />
-
-              <Bar
-                dataKey="value"
-                name="Emails"
-                radius={[8, 8, 0, 0]}
-                activeBar={false}
-              >
-                {statusData.map((item, index) => (
-                  <Cell
-                    key={`${item.name}-${index}`}
-                    fill={
-                      CHART_COLORS[
-                        index % CHART_COLORS.length
-                      ]
-                    }
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <VerticalBarChart data={statusData} />
         </AnalyticsChartCard>
 
         <AnalyticsChartCard
@@ -411,7 +301,10 @@ export function AnalyticsCharts({
           isLoading={isLoading}
           isEmpty={draftData.length === 0}
         >
-          <DonutChart data={draftData} />
+          <DonutChart
+            data={draftData}
+            chartType="draft"
+          />
         </AnalyticsChartCard>
 
         <AnalyticsChartCard
@@ -420,7 +313,10 @@ export function AnalyticsCharts({
           isLoading={isLoading}
           isEmpty={meetingData.length === 0}
         >
-          <DonutChart data={meetingData} />
+          <DonutChart
+            data={meetingData}
+            chartType="meeting"
+          />
         </AnalyticsChartCard>
 
         <AnalyticsChartCard
@@ -430,74 +326,276 @@ export function AnalyticsCharts({
           isEmpty={attachmentData.length === 0}
           className="xl:col-span-2"
         >
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart
-              data={attachmentData}
-              margin={{
-                top: 15,
-                right: 25,
-                left: -5,
-                bottom: 20,
-              }}
-            >
-              <CartesianGrid
-                strokeDasharray="4 4"
-                vertical={false}
-                stroke={GRID_COLOR}
-                strokeOpacity={0.55}
-              />
-
-              <XAxis
-                dataKey="name"
-                axisLine={{
-                  stroke: GRID_COLOR,
-                }}
-                tickLine={false}
-                tick={{
-                  fontSize: 12,
-                  fill: AXIS_TEXT_COLOR,
-                  fontWeight: 500,
-                }}
-              />
-
-              <YAxis
-                allowDecimals={false}
-                axisLine={false}
-                tickLine={false}
-                tick={{
-                  fontSize: 12,
-                  fill: AXIS_TEXT_COLOR,
-                  fontWeight: 500,
-                }}
-              />
-
-              <Tooltip
-                cursor={false}
-                content={<AnalyticsTooltip />}
-              />
-
-              <Bar
-                dataKey="value"
-                name="Emails"
-                radius={[8, 8, 0, 0]}
-                activeBar={false}
-              >
-                {attachmentData.map((item, index) => (
-                  <Cell
-                    key={`${item.name}-${index}`}
-                    fill={
-                      CHART_COLORS[
-                        index % CHART_COLORS.length
-                      ]
-                    }
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <VerticalBarChart data={attachmentData} />
         </AnalyticsChartCard>
       </div>
     </section>
+  );
+}
+
+function EmailVolumeChart({
+  data,
+}: {
+  data: TrendRecord[];
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={320}>
+      <AreaChart
+        data={data}
+        margin={{
+          top: 18,
+          right: 22,
+          left: -8,
+          bottom: 5,
+        }}
+      >
+        <defs>
+          <linearGradient
+            id="analyticsEmailVolumeGradient"
+            x1="0"
+            y1="0"
+            x2="0"
+            y2="1"
+          >
+            <stop
+              offset="0%"
+              stopColor={COLOR.blue}
+              stopOpacity={0.38}
+            />
+
+            <stop
+              offset="52%"
+              stopColor={COLOR.blue}
+              stopOpacity={0.14}
+            />
+
+            <stop
+              offset="100%"
+              stopColor={COLOR.blue}
+              stopOpacity={0}
+            />
+          </linearGradient>
+        </defs>
+
+        <CartesianGrid
+          strokeDasharray="5 7"
+          vertical={false}
+          stroke={COLOR.grid}
+        />
+
+        <XAxis
+          dataKey="date"
+          tickFormatter={formatChartDate}
+          axisLine={false}
+          tickLine={false}
+          dy={10}
+          tick={{
+            fontSize: 12,
+            fill: COLOR.slate,
+            fontWeight: 500,
+          }}
+        />
+
+        <YAxis
+          allowDecimals={false}
+          axisLine={false}
+          tickLine={false}
+          tick={{
+            fontSize: 12,
+            fill: COLOR.slate,
+            fontWeight: 500,
+          }}
+        />
+
+        <Tooltip
+          cursor={{
+            stroke: COLOR.cursor,
+            strokeWidth: 1.5,
+            strokeDasharray: "5 5",
+          }}
+          content={
+            <AnalyticsTooltip
+              labelFormatter={formatChartDate}
+            />
+          }
+        />
+
+        <Area
+          type="natural"
+          dataKey="emails"
+          name="Emails"
+          stroke={COLOR.blue}
+          strokeWidth={4}
+          fill="url(#analyticsEmailVolumeGradient)"
+          animationDuration={900}
+          animationEasing="ease-out"
+          dot={{
+            r: 4,
+            fill: COLOR.blue,
+            stroke: "var(--card)",
+            strokeWidth: 2,
+          }}
+          activeDot={{
+            r: 7,
+            fill: COLOR.green,
+            stroke: "var(--card)",
+            strokeWidth: 3,
+          }}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+function HorizontalBarChart({
+  data,
+}: {
+  data: ChartRecord[];
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={320}>
+      <BarChart
+        data={data}
+        layout="vertical"
+        margin={{
+          top: 5,
+          right: 28,
+          left: 26,
+          bottom: 5,
+        }}
+      >
+        <CartesianGrid
+          strokeDasharray="5 7"
+          horizontal={false}
+          stroke={COLOR.grid}
+        />
+
+        <XAxis
+          type="number"
+          allowDecimals={false}
+          axisLine={false}
+          tickLine={false}
+          tick={{
+            fontSize: 12,
+            fill: COLOR.slate,
+            fontWeight: 500,
+          }}
+        />
+
+        <YAxis
+          type="category"
+          dataKey="name"
+          width={118}
+          axisLine={false}
+          tickLine={false}
+          tick={{
+            fontSize: 12,
+            fill: COLOR.slate,
+            fontWeight: 500,
+          }}
+        />
+
+        <Tooltip
+          cursor={false}
+          content={<AnalyticsTooltip />}
+        />
+
+        <Bar
+          dataKey="value"
+          name="Emails"
+          radius={[0, 9, 9, 0]}
+          maxBarSize={34}
+          animationDuration={750}
+        >
+          {data.map((item, index) => (
+            <Cell
+              key={`${item.name}-${index}`}
+              fill={
+                ANALYTICS_COLORS[
+                  index % ANALYTICS_COLORS.length
+                ]
+              }
+            />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function VerticalBarChart({
+  data,
+}: {
+  data: ChartRecord[];
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={320}>
+      <BarChart
+        data={data}
+        margin={{
+          top: 15,
+          right: 18,
+          left: -5,
+          bottom: 45,
+        }}
+      >
+        <CartesianGrid
+          strokeDasharray="5 7"
+          vertical={false}
+          stroke={COLOR.grid}
+        />
+
+        <XAxis
+          dataKey="name"
+          axisLine={false}
+          tickLine={false}
+          angle={-18}
+          textAnchor="end"
+          height={78}
+          interval={0}
+          tick={{
+            fontSize: 11,
+            fill: COLOR.slate,
+            fontWeight: 500,
+          }}
+        />
+
+        <YAxis
+          allowDecimals={false}
+          axisLine={false}
+          tickLine={false}
+          tick={{
+            fontSize: 12,
+            fill: COLOR.slate,
+            fontWeight: 500,
+          }}
+        />
+
+        <Tooltip
+          cursor={false}
+          content={<AnalyticsTooltip />}
+        />
+
+        <Bar
+          dataKey="value"
+          name="Emails"
+          radius={[9, 9, 0, 0]}
+          maxBarSize={54}
+          animationDuration={750}
+        >
+          {data.map((item, index) => (
+            <Cell
+              key={`${item.name}-${index}`}
+              fill={
+                ANALYTICS_COLORS[
+                  index % ANALYTICS_COLORS.length
+                ]
+              }
+            />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
   );
 }
 
@@ -520,7 +618,7 @@ function AnalyticsChartCard({
 }: AnalyticsChartCardProps) {
   return (
     <article
-      className={`overflow-hidden rounded-2xl border border-border/70 bg-card p-5 shadow-sm ${className}`}
+      className={`overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#155DFC]/25 hover:shadow-[0_14px_32px_rgba(12,10,9,0.10)] ${className}`}
     >
       <div className="mb-5">
         <h3 className="text-base font-semibold text-foreground">
@@ -535,18 +633,7 @@ function AnalyticsChartCard({
       {isLoading ? (
         <ChartLoadingSkeleton />
       ) : isEmpty ? (
-        <div className="flex h-[300px] items-center justify-center rounded-xl border border-dashed border-border bg-muted/10">
-          <div className="text-center">
-            <p className="font-semibold text-foreground">
-              No chart data available
-            </p>
-
-            <p className="mt-2 text-sm text-muted-foreground">
-              Run the n8n dashboard workflow to generate
-              analytics data.
-            </p>
-          </div>
-        </div>
+        <EmptyChartState />
       ) : (
         children
       )}
@@ -556,73 +643,113 @@ function AnalyticsChartCard({
 
 function DonutChart({
   data,
+  chartType,
 }: {
   data: ChartRecord[];
+  chartType:
+    | "priority"
+    | "draft"
+    | "meeting"
+    | "general";
 }) {
   const total = data.reduce(
     (sum, item) => sum + item.value,
     0
   );
 
+  const chartData = data.map(
+    (item, index) => ({
+      ...item,
+      color: getSemanticColor(
+        item.name,
+        chartType,
+        index
+      ),
+      percentage:
+        total === 0
+          ? 0
+          : (item.value / total) * 100,
+    })
+  );
+
   return (
-    <div className="grid items-center gap-5 md:grid-cols-[minmax(0,1fr)_190px]">
-      <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
-          <Pie
-            data={data}
-            dataKey="value"
-            nameKey="name"
-            innerRadius={70}
-            outerRadius={108}
-            paddingAngle={3}
-            stroke={PIE_BORDER_COLOR}
-            strokeWidth={3}
-            activeShape={false}
+    <div className="grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_210px]">
+      <div className="relative mx-auto h-[300px] w-full max-w-[320px]">
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+        >
+          <PieChart
+            margin={{
+              top: 24,
+              right: 24,
+              bottom: 24,
+              left: 24,
+            }}
           >
-            {data.map((item, index) => (
-              <Cell
-                key={`${item.name}-${index}`}
-                fill={
-                  CHART_COLORS[
-                    index % CHART_COLORS.length
-                  ]
-                }
-              />
-            ))}
-          </Pie>
+            <Pie
+              data={chartData}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              innerRadius={70}
+              outerRadius={105}
+              startAngle={90}
+              endAngle={-270}
+              paddingAngle={0}
+              cornerRadius={0}
+              stroke="none"
+              strokeWidth={0}
+              isAnimationActive
+              animationBegin={80}
+              animationDuration={800}
+              animationEasing="ease-out"
+            >
+              {chartData.map((item, index) => (
+                <Cell
+                  key={`${item.name}-${index}`}
+                  fill={item.color}
+                  stroke="none"
+                  strokeWidth={0}
+                />
+              ))}
+            </Pie>
 
-          <Tooltip
-            cursor={false}
-            content={<AnalyticsTooltip />}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+            <Tooltip
+              cursor={false}
+              content={<AnalyticsTooltip />}
+            />
+          </PieChart>
+        </ResponsiveContainer>
 
-      <div>
-        <div className="mb-5 rounded-xl border border-border/70 bg-muted/20 p-4 text-center">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Total
-          </p>
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-3xl font-bold tracking-tight text-foreground">
+              {total.toLocaleString()}
+            </p>
 
-          <p className="mt-1 text-3xl font-bold text-foreground">
-            {total}
-          </p>
+            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Total
+            </p>
+          </div>
         </div>
+      </div>
 
-        <div className="space-y-3">
-          {data.slice(0, 7).map((item, index) => (
+      <div className="space-y-3">
+        {chartData
+          .slice(0, 10)
+          .map((item) => (
             <div
               key={item.name}
-              className="flex items-center justify-between gap-3"
+              className="flex items-center justify-between gap-4 rounded-xl border border-border/70 bg-muted/15 px-3 py-2.5"
             >
-              <div className="flex min-w-0 items-center gap-2">
+              <div className="flex min-w-0 items-center gap-2.5">
                 <span
                   className="h-3 w-3 shrink-0 rounded-full"
                   style={{
                     backgroundColor:
-                      CHART_COLORS[
-                        index % CHART_COLORS.length
-                      ],
+                      item.color,
                   }}
                 />
 
@@ -631,12 +758,37 @@ function DonutChart({
                 </span>
               </div>
 
-              <span className="text-sm font-bold text-foreground">
-                {item.value}
-              </span>
+              <div className="shrink-0 text-right">
+                <p className="text-sm font-bold text-foreground">
+                  {item.value.toLocaleString()}
+                </p>
+
+                <p className="text-[11px] text-muted-foreground">
+                  {item.percentage.toFixed(
+                    1
+                  )}
+                  %
+                </p>
+              </div>
             </div>
           ))}
-        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyChartState() {
+  return (
+    <div className="flex h-[300px] items-center justify-center rounded-xl border border-dashed border-[#45556C]/30 bg-muted/10">
+      <div className="text-center">
+        <p className="font-semibold text-foreground">
+          No chart data available
+        </p>
+
+        <p className="mt-2 text-sm text-muted-foreground">
+          Run the n8n dashboard workflow to generate
+          analytics data.
+        </p>
       </div>
     </div>
   );
@@ -660,22 +812,6 @@ function ChartLoadingSkeleton() {
   );
 }
 
-interface TooltipPayloadItem {
-  name?: string;
-  value?: number | string;
-  color?: string;
-  payload?: {
-    name?: string;
-  };
-}
-
-interface AnalyticsTooltipProps {
-  active?: boolean;
-  label?: string;
-  payload?: TooltipPayloadItem[];
-  labelFormatter?: (label: string) => string;
-}
-
 function AnalyticsTooltip({
   active,
   label,
@@ -692,43 +828,58 @@ function AnalyticsTooltip({
       : label;
 
   return (
-    <div className="min-w-40 rounded-xl border border-slate-700 bg-slate-950/95 p-3 text-slate-100 shadow-2xl backdrop-blur-md">
+    <div className="min-w-40 overflow-hidden rounded-xl border border-[#45556C]/30 bg-popover/95 shadow-[0_16px_36px_rgba(12,10,9,0.22)] backdrop-blur-xl">
       {formattedLabel && (
-        <p className="mb-2 border-b border-slate-800 pb-2 text-xs font-semibold text-slate-300">
+        <p className="border-b border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-popover-foreground">
           {formattedLabel}
         </p>
       )}
 
-      <div className="space-y-2">
-        {payload.map((item, index) => (
-          <div
-            key={`${item.name}-${index}`}
-            className="flex items-center justify-between gap-5 text-sm"
-          >
-            <div className="flex min-w-0 items-center gap-2">
-              <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{
-                  backgroundColor:
-                    item.color ??
-                    CHART_COLORS[
-                      index % CHART_COLORS.length
-                    ],
-                }}
-              />
+      <div className="space-y-2 p-3">
+        {payload.map((item, index) => {
+          const payloadRecord =
+            item.payload as
+              | ChartRecord
+              | TrendRecord
+              | undefined;
 
-              <span className="truncate text-slate-300">
-                {item.payload?.name ??
-                  item.name ??
-                  "Value"}
+          const itemName =
+            payloadRecord &&
+            "name" in payloadRecord
+              ? String(payloadRecord.name)
+              : item.name ?? "Value";
+
+          return (
+            <div
+              key={`${itemName}-${index}`}
+              className="flex items-center justify-between gap-5"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{
+                    backgroundColor:
+                      item.color ??
+                      ANALYTICS_COLORS[
+                        index %
+                          ANALYTICS_COLORS.length
+                      ],
+                  }}
+                />
+
+                <span className="truncate text-sm text-muted-foreground">
+                  {itemName}
+                </span>
+              </div>
+
+              <span className="text-sm font-bold text-popover-foreground">
+                {Number(
+                  item.value ?? 0
+                ).toLocaleString()}
               </span>
             </div>
-
-            <span className="font-bold text-white">
-              {item.value}
-            </span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

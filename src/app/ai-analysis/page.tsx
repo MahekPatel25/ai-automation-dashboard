@@ -1,11 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type LucideIcon,
+} from "react";
 import {
   AlertTriangle,
   BrainCircuit,
   CheckCircle2,
   CircleGauge,
+  ChevronLeft,
+  ChevronRight,
   FileText,
   MessageSquareText,
   RefreshCw,
@@ -18,9 +25,7 @@ import {
   EmailPriorityBadge,
   EmailStatusBadge,
 } from "@/components/dashboard/email-badges";
-import {
-  createEmailItems,
-} from "@/components/dashboard/email-data";
+import { createEmailItems } from "@/components/dashboard/email-data";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 
@@ -31,7 +36,122 @@ type AnalysisFilter =
   | "draft-created"
   | "failed";
 
+type AccentName =
+  | "blue"
+  | "green"
+  | "yellow"
+  | "red"
+  | "teal"
+  | "purple"
+  | "slate"
+  | "orange";
+
+interface AccentStyle {
+  main: string;
+  text: string;
+  background: string;
+  border: string;
+  topLine: string;
+}
+
+interface AnalysisCardProps {
+  title: string;
+  value: number;
+  description: string;
+  icon: LucideIcon;
+  accent: AccentName;
+  isLoading: boolean;
+}
+
+interface PerformanceCardProps {
+  title: string;
+  value: number;
+  description: string;
+  icon: LucideIcon;
+  accent: AccentName;
+  isLoading: boolean;
+}
+
 const EMAILS_PER_PAGE = 8;
+
+const ACCENTS: Record<AccentName, AccentStyle> = {
+  blue: {
+    main: "#155DFC",
+    text: "#155DFC",
+    background: "rgba(21, 93, 252, 0.08)",
+    border: "rgba(21, 93, 252, 0.22)",
+    topLine: "rgba(21, 93, 252, 0.48)",
+  },
+
+  green: {
+    main: "#31C950",
+    text: "#208F38",
+    background: "rgba(49, 201, 80, 0.08)",
+    border: "rgba(49, 201, 80, 0.22)",
+    topLine: "rgba(49, 201, 80, 0.48)",
+  },
+
+  yellow: {
+    main: "#FDC745",
+    text: "#9B6A00",
+    background: "rgba(253, 199, 69, 0.11)",
+    border: "rgba(253, 199, 69, 0.30)",
+    topLine: "rgba(253, 199, 69, 0.58)",
+  },
+
+  red: {
+    main: "#EC253F",
+    text: "#C11007",
+    background: "rgba(236, 37, 63, 0.08)",
+    border: "rgba(236, 37, 63, 0.23)",
+    topLine: "rgba(236, 37, 63, 0.50)",
+  },
+
+  teal: {
+    main: "#09B3A6",
+    text: "#087D75",
+    background: "rgba(9, 179, 166, 0.08)",
+    border: "rgba(9, 179, 166, 0.23)",
+    topLine: "rgba(9, 179, 166, 0.50)",
+  },
+
+  purple: {
+    main: "#6D5CE8",
+    text: "#5543C7",
+    background: "rgba(109, 92, 232, 0.08)",
+    border: "rgba(109, 92, 232, 0.23)",
+    topLine: "rgba(109, 92, 232, 0.48)",
+  },
+
+  slate: {
+    main: "#45556C",
+    text: "#45556C",
+    background: "rgba(69, 85, 108, 0.08)",
+    border: "rgba(69, 85, 108, 0.22)",
+    topLine: "rgba(69, 85, 108, 0.44)",
+  },
+
+  orange: {
+    main: "#FF7A59",
+    text: "#C9573D",
+    background: "rgba(255, 122, 89, 0.09)",
+    border: "rgba(255, 122, 89, 0.24)",
+    topLine: "rgba(255, 122, 89, 0.50)",
+  },
+};
+
+const CATEGORY_COLORS = [
+  "#31C950",
+  "#09B3A6",
+  "#FDC745",
+  "#155DFC",
+  "#EC253F",
+  "#18786F",
+  "#45556C",
+  "#6D5CE8",
+  "#FF7A59",
+  "#0C0A09",
+];
 
 export default function AiAnalysisPage() {
   const {
@@ -208,7 +328,7 @@ export default function AiAnalysisPage() {
         email.status,
         email.workflowStatus,
       ].some((value) =>
-        value
+        String(value)
           .toLowerCase()
           .includes(normalizedSearch)
       );
@@ -218,7 +338,8 @@ export default function AiAnalysisPage() {
   const totalPages = Math.max(
     1,
     Math.ceil(
-      filteredEmails.length / EMAILS_PER_PAGE
+      filteredEmails.length /
+        EMAILS_PER_PAGE
     )
   );
 
@@ -226,6 +347,16 @@ export default function AiAnalysisPage() {
     currentPage,
     totalPages
   );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter, searchQuery]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const paginatedEmails = useMemo(() => {
     const startIndex =
@@ -237,6 +368,30 @@ export default function AiAnalysisPage() {
       startIndex + EMAILS_PER_PAGE
     );
   }, [filteredEmails, safeCurrentPage]);
+
+  const visiblePages = useMemo(() => {
+    const pages: number[] = [];
+
+    const startPage = Math.max(
+      1,
+      safeCurrentPage - 2
+    );
+
+    const endPage = Math.min(
+      totalPages,
+      safeCurrentPage + 2
+    );
+
+    for (
+      let page = startPage;
+      page <= endPage;
+      page += 1
+    ) {
+      pages.push(page);
+    }
+
+    return pages;
+  }, [safeCurrentPage, totalPages]);
 
   function changeFilter(
     filter: AnalysisFilter
@@ -261,30 +416,36 @@ export default function AiAnalysisPage() {
   return (
     <DashboardShell>
       <div className="space-y-6">
-        <section className="rounded-2xl border border-border/70 bg-card p-6 shadow-sm lg:p-8">
+        <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm lg:p-6">
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-primary">
-                AI Email Intelligence
-              </p>
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[rgba(109,92,232,0.22)] bg-[rgba(109,92,232,0.08)] text-[#5543C7]">
+                <BrainCircuit className="h-5 w-5" />
+              </div>
 
-              <h1 className="mt-2 text-3xl font-bold tracking-tight">
-                AI Analysis
-              </h1>
+              <div>
+                <p className="text-sm font-semibold text-[#5543C7]">
+                  AI Email Intelligence
+                </p>
 
-              <p className="mt-3 max-w-3xl text-muted-foreground">
-                Review AI classifications, reply
-                decisions, draft creation, priority
-                detection and workflow performance
-                across all processed emails.
-              </p>
+                <h1 className="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">
+                  AI Analysis
+                </h1>
+
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+                  Review AI classifications,
+                  reply decisions, generated
+                  drafts, priority detection and
+                  workflow performance.
+                </p>
+              </div>
             </div>
 
             <button
               type="button"
-              onClick={refresh}
+              onClick={() => void refresh()}
               disabled={isLoading}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-semibold transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <RefreshCw
                 className={`h-4 w-4 ${
@@ -299,10 +460,14 @@ export default function AiAnalysisPage() {
           </div>
 
           {error && (
-            <div className="mt-5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              AI analysis data could not be
-              loaded. Please check the dashboard
-              API and n8n workflow connection.
+            <div className="mt-5 flex items-start gap-3 rounded-xl border border-[rgba(193,16,7,0.22)] bg-[rgba(193,16,7,0.07)] px-4 py-3 text-sm text-[#C11007]">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+
+              <p>
+                AI analysis data could not be
+                loaded. Check the dashboard API
+                and n8n workflow connection.
+              </p>
             </div>
           )}
         </section>
@@ -313,6 +478,7 @@ export default function AiAnalysisPage() {
             value={emails.length}
             description="Total emails processed by AI"
             icon={BrainCircuit}
+            accent="blue"
             isLoading={isLoading}
           />
 
@@ -321,6 +487,7 @@ export default function AiAnalysisPage() {
             value={highPriorityEmails.length}
             description="Urgent emails detected by AI"
             icon={AlertTriangle}
+            accent="red"
             isLoading={isLoading}
           />
 
@@ -329,6 +496,7 @@ export default function AiAnalysisPage() {
             value={replyRequiredEmails.length}
             description="Emails requiring a response"
             icon={MessageSquareText}
+            accent="teal"
             isLoading={isLoading}
           />
 
@@ -337,6 +505,7 @@ export default function AiAnalysisPage() {
             value={draftCreatedEmails.length}
             description="AI-generated draft replies"
             icon={FileText}
+            accent="green"
             isLoading={isLoading}
           />
         </section>
@@ -347,6 +516,7 @@ export default function AiAnalysisPage() {
             value={automationSuccessRate}
             description="Completed email workflows"
             icon={CheckCircle2}
+            accent="green"
             isLoading={isLoading}
           />
 
@@ -355,6 +525,7 @@ export default function AiAnalysisPage() {
             value={draftGenerationRate}
             description="Emails receiving AI drafts"
             icon={Sparkles}
+            accent="blue"
             isLoading={isLoading}
           />
 
@@ -363,12 +534,13 @@ export default function AiAnalysisPage() {
             value={replyDetectionRate}
             description="Emails marked for reply"
             icon={CircleGauge}
+            accent="teal"
             isLoading={isLoading}
           />
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-          <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
+          <article className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold">
@@ -381,7 +553,7 @@ export default function AiAnalysisPage() {
                 </p>
               </div>
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[rgba(21,93,252,0.22)] bg-[rgba(21,93,252,0.08)] text-[#155DFC]">
                 <TrendingUp className="h-5 w-5" />
               </div>
             </div>
@@ -389,7 +561,7 @@ export default function AiAnalysisPage() {
             <div className="mt-6 space-y-4">
               {isLoading ? (
                 Array.from({
-                  length: 5,
+                  length: 6,
                 }).map((_, index) => (
                   <div
                     key={index}
@@ -401,31 +573,63 @@ export default function AiAnalysisPage() {
                 ))
               ) : categorySummary.length > 0 ? (
                 categorySummary
-                  .slice(0, 6)
-                  .map((item) => (
-                    <div
-                      key={item.category}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-medium">
-                          {item.category}
-                        </p>
+                  .slice(0, 10)
+                  .map((item, index) => {
+                    const color =
+                      CATEGORY_COLORS[
+                        index %
+                          CATEGORY_COLORS.length
+                      ];
 
-                        <p className="text-sm text-muted-foreground">
-                          {item.count} emails
-                        </p>
-                      </div>
+                    return (
+                      <div
+                        key={item.category}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span
+                              className="h-2.5 w-2.5 shrink-0 rounded-full"
+                              style={{
+                                backgroundColor:
+                                  color,
+                              }}
+                            />
 
-                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-primary transition-all"
-                          style={{
-                            width: `${item.percentage}%`,
-                          }}
-                        />
+                            <p className="truncate text-sm font-medium">
+                              {item.category}
+                            </p>
+                          </div>
+
+                          <div className="flex shrink-0 items-center gap-2">
+                            <p className="text-xs text-muted-foreground">
+                              {item.count} emails
+                            </p>
+
+                            <p className="text-xs font-semibold">
+                              {item.percentage}%
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full transition-[width] duration-700 ease-out"
+                            style={{
+                              width: `${Math.min(
+                                100,
+                                Math.max(
+                                  0,
+                                  item.percentage
+                                )
+                              )}%`,
+                              backgroundColor:
+                                color,
+                            }}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
               ) : (
                 <div className="rounded-xl border border-dashed border-border p-8 text-center">
                   <p className="font-semibold">
@@ -439,9 +643,9 @@ export default function AiAnalysisPage() {
                 </div>
               )}
             </div>
-          </div>
+          </article>
 
-          <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
+          <article className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold">
@@ -454,43 +658,49 @@ export default function AiAnalysisPage() {
                 </p>
               </div>
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[rgba(109,92,232,0.22)] bg-[rgba(109,92,232,0.08)] text-[#5543C7]">
                 <Sparkles className="h-5 w-5" />
               </div>
             </div>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 space-y-3">
               <InsightRow
                 label="Top Category"
                 value={topCategory}
+                accent="green"
               />
 
               <InsightRow
                 label="Completed Workflows"
                 value={`${completedEmails.length}`}
+                accent="teal"
               />
 
               <InsightRow
                 label="Failed Workflows"
                 value={`${failedEmails.length}`}
+                accent="red"
               />
 
               <InsightRow
                 label="Drafts Generated"
                 value={`${draftCreatedEmails.length}`}
+                accent="blue"
               />
 
               <InsightRow
                 label="Replies Required"
                 value={`${replyRequiredEmails.length}`}
+                accent="yellow"
               />
 
               <InsightRow
                 label="High Priority Emails"
                 value={`${highPriorityEmails.length}`}
+                accent="orange"
               />
             </div>
-          </div>
+          </article>
         </section>
 
         <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
@@ -502,9 +712,9 @@ export default function AiAnalysisPage() {
                 </h2>
 
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Review AI analysis results here.
-                  Email details and draft actions are
-                  available only in Email Status.
+                  Review AI analysis results.
+                  Email details and draft actions
+                  remain available in Email Status.
                 </p>
               </div>
 
@@ -518,10 +728,9 @@ export default function AiAnalysisPage() {
                     setSearchQuery(
                       event.target.value
                     );
-                    setCurrentPage(1);
                   }}
                   placeholder="Search analysis..."
-                  className="h-11 w-full rounded-xl border border-border bg-background pl-10 pr-4 text-sm outline-none transition focus:border-primary/50 focus:ring-4 focus:ring-primary/10"
+                  className="h-11 w-full rounded-xl border border-border bg-background pl-10 pr-4 text-sm outline-none transition-all duration-200 placeholder:text-muted-foreground hover:border-ring/40 focus:border-ring focus:ring-4 focus:ring-ring/10"
                 />
               </div>
             </div>
@@ -533,6 +742,7 @@ export default function AiAnalysisPage() {
                 isActive={
                   activeFilter === "all"
                 }
+                accent="blue"
                 onClick={() =>
                   changeFilter("all")
                 }
@@ -547,6 +757,7 @@ export default function AiAnalysisPage() {
                   activeFilter ===
                   "high-priority"
                 }
+                accent="red"
                 onClick={() =>
                   changeFilter(
                     "high-priority"
@@ -563,6 +774,7 @@ export default function AiAnalysisPage() {
                   activeFilter ===
                   "reply-required"
                 }
+                accent="teal"
                 onClick={() =>
                   changeFilter(
                     "reply-required"
@@ -579,6 +791,7 @@ export default function AiAnalysisPage() {
                   activeFilter ===
                   "draft-created"
                 }
+                accent="green"
                 onClick={() =>
                   changeFilter(
                     "draft-created"
@@ -592,6 +805,7 @@ export default function AiAnalysisPage() {
                 isActive={
                   activeFilter === "failed"
                 }
+                accent="slate"
                 onClick={() =>
                   changeFilter("failed")
                 }
@@ -602,82 +816,35 @@ export default function AiAnalysisPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1100px] border-collapse">
               <thead>
-                <tr className="border-b border-border/70 bg-muted/20 text-left">
-                  <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Sender
-                  </th>
-
-                  <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Subject
-                  </th>
-
-                  <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Category
-                  </th>
-
-                  <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Priority
-                  </th>
-
-                  <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Reply
-                  </th>
-
-                  <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Draft
-                  </th>
-
-                  <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Status
-                  </th>
+                <tr className="border-b border-border/70 bg-muted/15 text-left">
+                  <TableHeading label="Sender" />
+                  <TableHeading label="Subject" />
+                  <TableHeading label="Category" />
+                  <TableHeading label="Priority" />
+                  <TableHeading label="Reply" />
+                  <TableHeading label="Draft" />
+                  <TableHeading label="Status" />
                 </tr>
               </thead>
 
               <tbody>
                 {isLoading ? (
-                  Array.from({
-                    length: 6,
-                  }).map((_, rowIndex) => (
-                    <tr
-                      key={rowIndex}
-                      className="border-b border-border/60"
-                    >
-                      {Array.from({
-                        length: 7,
-                      }).map(
-                        (
-                          __,
-                          columnIndex
-                        ) => (
-                          <td
-                            key={columnIndex}
-                            className="px-5 py-5"
-                          >
-                            <div className="h-5 animate-pulse rounded-md bg-muted" />
-                          </td>
-                        )
-                      )}
-                    </tr>
-                  ))
+                  <TableSkeleton />
                 ) : paginatedEmails.length >
                   0 ? (
                   paginatedEmails.map(
                     (email) => (
                       <tr
                         key={email.id}
-                        className="cursor-default border-b border-border/60 transition-colors last:border-b-0 hover:bg-muted/20"
+                        className="border-b border-border/60 transition-colors last:border-b-0 hover:bg-muted/20"
                       >
                         <td className="px-5 py-4">
                           <p className="max-w-[190px] truncate text-sm font-semibold">
-                            {
-                              email.senderName
-                            }
+                            {email.senderName}
                           </p>
 
                           <p className="mt-1 max-w-[190px] truncate text-xs text-muted-foreground">
-                            {
-                              email.senderEmail
-                            }
+                            {email.senderEmail}
                           </p>
                         </td>
 
@@ -692,10 +859,8 @@ export default function AiAnalysisPage() {
                         </td>
 
                         <td className="px-5 py-4">
-                          <span className="inline-flex rounded-lg border border-border/70 bg-muted/20 px-2.5 py-1 text-xs font-medium">
-                            {
-                              email.category
-                            }
+                          <span className="inline-flex max-w-[140px] truncate rounded-lg border border-border/70 bg-muted/15 px-2.5 py-1 text-xs font-medium">
+                            {email.category}
                           </span>
                         </td>
 
@@ -714,6 +879,8 @@ export default function AiAnalysisPage() {
                             }
                             trueLabel="Required"
                             falseLabel="Not Required"
+                            activeColor="#FDC745"
+                            activeText="#9B6A00"
                           />
                         </td>
 
@@ -724,6 +891,8 @@ export default function AiAnalysisPage() {
                             }
                             trueLabel="Created"
                             falseLabel="Not Created"
+                            activeColor="#31C950"
+                            activeText="#208F38"
                           />
                         </td>
 
@@ -781,36 +950,28 @@ export default function AiAnalysisPage() {
                   disabled={
                     safeCurrentPage === 1
                   }
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-border px-4 text-sm font-medium transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-border px-3 text-sm font-medium transition hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-45"
                 >
+                  <ChevronLeft className="h-4 w-4" />
                   Previous
                 </button>
 
-                {Array.from({
-                  length: totalPages,
-                }).map((_, index) => {
-                  const page = index + 1;
-
-                  return (
-                    <button
-                      key={page}
-                      type="button"
-                      onClick={() =>
-                        setCurrentPage(
-                          page
-                        )
-                      }
-                      className={
-                        page ===
-                        safeCurrentPage
-                          ? "inline-flex h-9 min-w-9 items-center justify-center rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground"
-                          : "inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium transition hover:bg-accent"
-                      }
-                    >
-                      {page}
-                    </button>
-                  );
-                })}
+                {visiblePages.map((page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() =>
+                      setCurrentPage(page)
+                    }
+                    className={
+                      page === safeCurrentPage
+                        ? "inline-flex h-9 min-w-9 items-center justify-center rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground"
+                        : "inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium transition hover:bg-muted/40"
+                    }
+                  >
+                    {page}
+                  </button>
+                ))}
 
                 <button
                   type="button"
@@ -819,9 +980,10 @@ export default function AiAnalysisPage() {
                     safeCurrentPage ===
                     totalPages
                   }
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-border px-4 text-sm font-medium transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-border px-3 text-sm font-medium transition hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   Next
+                  <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -832,56 +994,85 @@ export default function AiAnalysisPage() {
   );
 }
 
-interface AnalysisCardProps {
-  title: string;
-  value: number;
-  description: string;
-  icon: typeof BrainCircuit;
-  isLoading: boolean;
-}
-
 function AnalysisCard({
   title,
   value,
   description,
   icon: Icon,
+  accent,
   isLoading,
 }: AnalysisCardProps) {
+  const colors = ACCENTS[accent];
+
   return (
-    <article className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
+    <article className="group relative min-h-[158px] overflow-hidden rounded-2xl border border-border/70 bg-card p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-px opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        style={{
+          background: `linear-gradient(
+            90deg,
+            transparent,
+            ${colors.topLine},
+            transparent
+          )`,
+        }}
+      />
+
+      <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-muted-foreground">
             {title}
           </p>
 
           {isLoading ? (
-            <div className="mt-3 h-9 w-16 animate-pulse rounded-md bg-muted" />
+            <div className="mt-3 h-8 w-16 animate-pulse rounded-md bg-muted" />
           ) : (
-            <p className="mt-2 text-3xl font-bold tracking-tight">
-              {value}
+            <p className="mt-1.5 text-[30px] font-bold tracking-tight">
+              {value.toLocaleString()}
             </p>
           )}
         </div>
 
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Icon className="h-5 w-5" />
+        <div
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-transform duration-200 group-hover:scale-[1.04]"
+          style={{
+            color: colors.text,
+            backgroundColor:
+              colors.background,
+            borderColor: colors.border,
+          }}
+        >
+          <Icon className="h-4.5 w-4.5" />
         </div>
       </div>
 
-      <p className="mt-4 text-xs text-muted-foreground">
+      <p className="mt-3 line-clamp-2 text-xs leading-5 text-muted-foreground">
         {description}
       </p>
+
+      <div className="mt-3 border-t border-border/60 pt-3">
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold"
+          style={{
+            color: colors.text,
+            backgroundColor:
+              colors.background,
+            borderColor: colors.border,
+          }}
+        >
+          <span
+            className="h-1.5 w-1.5 rounded-full"
+            style={{
+              backgroundColor: colors.main,
+            }}
+          />
+
+          Live analysis
+        </span>
+      </div>
     </article>
   );
-}
-
-interface PerformanceCardProps {
-  title: string;
-  value: number;
-  description: string;
-  icon: typeof CircleGauge;
-  isLoading: boolean;
 }
 
 function PerformanceCard({
@@ -889,80 +1080,122 @@ function PerformanceCard({
   value,
   description,
   icon: Icon,
+  accent,
   isLoading,
 }: PerformanceCardProps) {
+  const colors = ACCENTS[accent];
+
+  const safeValue = Math.min(
+    100,
+    Math.max(0, value)
+  );
+
   return (
-    <article className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-4">
+    <article className="group relative min-h-[165px] overflow-hidden rounded-2xl border border-border/70 bg-card p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-px opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        style={{
+          background: `linear-gradient(
+            90deg,
+            transparent,
+            ${colors.topLine},
+            transparent
+          )`,
+        }}
+      />
+
+      <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-muted-foreground">
             {title}
           </p>
 
           {isLoading ? (
-            <div className="mt-3 h-9 w-20 animate-pulse rounded-md bg-muted" />
+            <div className="mt-3 h-8 w-20 animate-pulse rounded-md bg-muted" />
           ) : (
-            <p className="mt-2 text-3xl font-bold tracking-tight">
-              {value}%
+            <p className="mt-1.5 text-[30px] font-bold tracking-tight">
+              {safeValue}%
             </p>
           )}
         </div>
 
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Icon className="h-5 w-5" />
+        <div
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-transform duration-200 group-hover:scale-[1.04]"
+          style={{
+            color: colors.text,
+            backgroundColor:
+              colors.background,
+            borderColor: colors.border,
+          }}
+        >
+          <Icon className="h-4.5 w-4.5" />
         </div>
       </div>
 
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
+      <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-muted">
         <div
-          className="h-full rounded-full bg-primary transition-all"
+          className="h-full rounded-full transition-[width] duration-700 ease-out"
           style={{
-            width: `${Math.min(
-              100,
-              Math.max(0, value)
-            )}%`,
+            width: `${safeValue}%`,
+            backgroundColor: colors.main,
           }}
         />
       </div>
 
-      <p className="mt-3 text-xs text-muted-foreground">
+      <p className="mt-3 text-xs leading-5 text-muted-foreground">
         {description}
       </p>
     </article>
   );
 }
 
-interface FilterButtonProps {
-  label: string;
-  count: number;
-  isActive: boolean;
-  onClick: () => void;
-}
-
 function FilterButton({
   label,
   count,
   isActive,
+  accent,
   onClick,
-}: FilterButtonProps) {
+}: {
+  label: string;
+  count: number;
+  isActive: boolean;
+  accent: AccentName;
+  onClick: () => void;
+}) {
+  const colors = ACCENTS[accent];
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className={
+      className="inline-flex h-10 items-center gap-2 rounded-xl border px-4 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5"
+      style={
         isActive
-          ? "inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm"
-          : "inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-background px-4 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          ? {
+              color: colors.text,
+              backgroundColor:
+                colors.background,
+              borderColor: colors.border,
+            }
+          : {
+              color:
+                "var(--muted-foreground)",
+              backgroundColor:
+                "var(--background)",
+              borderColor: "var(--border)",
+            }
       }
     >
       {label}
 
       <span
-        className={
-          isActive
-            ? "rounded-full bg-primary-foreground/20 px-2 py-0.5 text-xs"
-            : "rounded-full bg-muted px-2 py-0.5 text-xs"
-        }
+        className="rounded-full px-2 py-0.5 text-xs"
+        style={{
+          backgroundColor: isActive
+            ? `${colors.main}18`
+            : "var(--muted)",
+        }}
       >
         {count}
       </span>
@@ -974,21 +1207,44 @@ function BooleanBadge({
   value,
   trueLabel,
   falseLabel,
+  activeColor,
+  activeText,
 }: {
   value: boolean;
   trueLabel: string;
   falseLabel: string;
+  activeColor: string;
+  activeText: string;
 }) {
   if (value) {
     return (
-      <span className="inline-flex rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+      <span
+        className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold"
+        style={{
+          color: activeText,
+          backgroundColor:
+            `${activeColor}14`,
+          borderColor:
+            `${activeColor}38`,
+        }}
+      >
+        <span
+          className="h-1.5 w-1.5 rounded-full"
+          style={{
+            backgroundColor:
+              activeColor,
+          }}
+        />
+
         {trueLabel}
       </span>
     );
   }
 
   return (
-    <span className="inline-flex rounded-full border border-border bg-muted/30 px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/20 px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+      <span className="h-1.5 w-1.5 rounded-full bg-[#45556C]" />
+
       {falseLabel}
     </span>
   );
@@ -997,19 +1253,75 @@ function BooleanBadge({
 function InsightRow({
   label,
   value,
+  accent,
 }: {
   label: string;
   value: string;
+  accent: AccentName;
 }) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
-      <p className="text-sm text-muted-foreground">
-        {label}
-      </p>
+  const colors = ACCENTS[accent];
 
-      <p className="max-w-[180px] truncate text-sm font-semibold">
+  return (
+    <div className="group flex items-center justify-between gap-4 rounded-xl border border-border/70 bg-muted/10 px-4 py-3 transition-colors duration-200 hover:bg-muted/20">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span
+          className="h-2 w-2 shrink-0 rounded-full"
+          style={{
+            backgroundColor: colors.main,
+          }}
+        />
+
+        <p className="truncate text-sm text-muted-foreground">
+          {label}
+        </p>
+      </div>
+
+      <p
+        className="max-w-[180px] truncate text-sm font-semibold"
+        style={{
+          color: colors.text,
+        }}
+      >
         {value}
       </p>
     </div>
+  );
+}
+
+function TableHeading({
+  label,
+}: {
+  label: string;
+}) {
+  return (
+    <th className="px-5 py-4 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+      {label}
+    </th>
+  );
+}
+
+function TableSkeleton() {
+  return (
+    <>
+      {Array.from({
+        length: 6,
+      }).map((_, rowIndex) => (
+        <tr
+          key={rowIndex}
+          className="border-b border-border/60"
+        >
+          {Array.from({
+            length: 7,
+          }).map((__, columnIndex) => (
+            <td
+              key={columnIndex}
+              className="px-5 py-5"
+            >
+              <div className="h-5 animate-pulse rounded-md bg-muted" />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
   );
 }
